@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "google-auth-library": "^10.5.0"
+  },
+  "name": "tivess_be",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bosskings/Tivess_BE.git"
+  },
+  "author": "BossKings",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bosskings/Tivess_BE/issues"
+  },
+  "homepage": "https://github.com/bosskings/Tivess_BE#readme",
+  "description": ""
+}
