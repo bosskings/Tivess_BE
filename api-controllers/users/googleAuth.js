@@ -1,22 +1,16 @@
 import { OAuth2Client } from "google-auth-library";
-import express from "express";
-
-const router = express.Router();
+import User from "../../models/User.js";
 
 // Replace this with your own Google client ID
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-
 const client = new OAuth2Client(CLIENT_ID);
 
-// Dummy user database, replace with your database logic
-const users = new Map(); // Map<email, user object>
-
 // Google sign-up/login handler
-router.post("/google", async (req, res) => {
+const googleAuthController = async (req, res) => {
   const { token } = req.body;
 
   if (!token) {
-    return res.status(400).json({ message: "Token is required." });
+    throw new Error("Token is required. Please provide a valid token.");
   }
 
   try {
@@ -30,32 +24,42 @@ router.post("/google", async (req, res) => {
     const { email, name, sub, picture } = payload;
 
     if (!email) {
-      return res.status(400).json({ message: "Invalid Google token." });
+      throw new Error("Invalid Google token. No email found.");
     }
 
-    // Check if user exists in DB (Replace this logic with your own)
-    let user = users.get(email);
+    // Check if user exists in DB
+    let user = User.findOne({ email: email });
 
     if (!user) {
-      // Signup flow - register new user
-      user = {
-        id: sub, // or generate your own user ID
+      // Create new user if not exists
+      user = await User.create({
         email,
         name,
         picture,
         provider: "google",
-        // any other fields
-      };
-      users.set(email, user);
-      // You might want to save to your actual DB here
+        googleId: sub,
+      });
     }
 
-    // Issue your own session/token for the user if needed (e.g. JWT)
-    // Here, simply returning the user object for demonstration
-    res.status(200).json({ user, message: "Authenticated with Google." });
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid Google token.", error: err.message });
-  }
-});
+    const token = jwt.sign(
+      { id: user._id }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: "24h" }
+    );
 
-export default router;
+    res.status(200).json({ 
+      status:"SUCCESS", 
+        message: "Authenticated with Google.", 
+        user, token 
+      });
+ 
+  } catch (err) {
+    return res.status(401).json({ 
+      status:"FAILED", 
+      message: "Invalid Google token.", 
+      error: err.message
+    });
+  }
+};
+
+export default googleAuthController;

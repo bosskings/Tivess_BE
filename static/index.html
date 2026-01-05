@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google OAuth Test</title>
+
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Google OAuth Test (Frontend → Backend)</h2>
+
+  <!-- Google Sign-In Button -->
+  <div id="g_id_onload"
+       data-client_id="565141859948-2s76p9thegm83e7ure1pm7p5c3otekh5.apps.googleusercontent.com"
+       data-callback="onGoogleResponse">
+  </div>
+
+  <div class="g_id_signin"
+       data-type="standard"
+       data-size="large"
+       data-theme="outline">
+  </div>
+
+  <h3>Backend Response:</h3>
+  <div id="result">Waiting...</div>
+
+  <script>
+    // Handle Google Credential (id_token)
+    async function onGoogleResponse(response) {
+      const id_token = response.credential;
+
+
+      console.log('came here');
+      
+
+      document.getElementById("result").textContent =
+        "Sending ID Token to backend...\n\n" + id_token;
+
+      // Send ID token to backend API
+      const res = await fetch("http://localhost:3500/api/v1/users/googleAuth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id_token }),
+      });
+
+      const data = await res.json();
+
+      document.getElementById("result").textContent =
+        "Backend Response:\n\n" + JSON.stringify(data, null, 2);
+    }
+  </script>
+
+</body>
+</html>
