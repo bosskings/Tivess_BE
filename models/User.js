@@ -15,11 +15,16 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    googleId:{
-        type: String,
-    },
+
+    // googleId: {
+    //     type: String,
+    //     unique: true,
+    //     sparse: true
+    // },
+    
     picture: {
         type: String,
+        default:null
     },          
     provider: {
         type: String,
