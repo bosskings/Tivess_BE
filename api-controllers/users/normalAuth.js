@@ -1,8 +1,15 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../../models/User.js";
+import RefreshToken from "../../models/RefreshToken.js";
 
-const registerController = async (req, res) => {
+import {comparePassword,
+    generateRandomToken,
+    generateAccessToken,
+    addDays,
+    hashToken} from "../../utils/auth.utils.js"
+
+const signupController = async (req, res) => {
     const { name, email, phone, password } = req.body;
 
     // Ensure all required fields are present
@@ -56,44 +63,118 @@ const registerController = async (req, res) => {
     }
 };
 
+
+/**
+ * POST /auth/login
+ */
 const loginController = async (req, res) => {
-    try {
-        const { email, password } = req.body;
+    const { email, password, remember_me } = req.body
 
-        if (!email || !password) {
-            return res.status(400).json({ status: "FAILED", message: "Please provide email and password." });
-        }
-
-        // Find user by email
-        const user = await User.findOne({ email });
-
-        if (!user) {
-            return res.status(401).json({ status: "FAILED", message: "Invalid credentials." });
-        }
-
-        // Compare password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ status: "FAILED", message: "Invalid credentials." });
-        }
-
-        // Issue JWT
-        const token = jwt.sign(
-            { id: user._id },
-            process.env.JWT_SECRET,
-            { expiresIn: "24h" }
-        );
-
-        return res.status(200).json({
-            status: "SUCCESS",
-            message: "Login successful.",
-            user,
-            token
-        });
-    } catch (err) {
-        return res.status(500).json({ status: "FAILED", message: "Server error.", error: err.message });
+    const user = await User.findOne({ email })
+    if (!user || !user.isActive) {
+        return res.status(401).json({ message: 'Invalid credentials' })
     }
-};
+
+    const validPassword = await comparePassword(password, user.password)
+    if (!validPassword) {
+        return res.status(401).json({ message: 'Invalid credentials' })
+    }
+
+    const accessToken = generateAccessToken(user.id)
+
+    const refreshToken = generateRandomToken()
+    const refreshTokenHash = hashToken(refreshToken)
+
+    const days = remember_me
+        ? Number(30)
+        : Number(1)
+
+    await RefreshToken.create({
+        userId: user.id,
+        tokenHash: refreshTokenHash,
+        expiresAt: addDays(days),
+        deviceInfo: req.headers['user-agent']
+    })
+
+    res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: days * 24 * 60 * 60 * 1000
+    })
+
+    res.json({ accessToken })
+}
 
 
-export default registerController;
+
+/**
+ * POST /auth/refresh
+ */
+const refreshController = async (req, res) => {
+    const token = req.cookies.refresh_token
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized' })
+    }
+
+    const tokenHash = hashToken(token)
+
+    const storedToken = await RefreshToken.findOne({
+        tokenHash,
+        revoked: false,
+        expiresAt: { $gt: new Date() }
+    })
+
+    if (!storedToken) {
+        return res.status(401).json({ message: 'Invalid token' })
+    }
+
+    // ROTATION
+    storedToken.revoked = true
+    await storedToken.save()
+
+    const newRefreshToken = generateRandomToken()
+    const newRefreshTokenHash = hashToken(newRefreshToken)
+
+    await RefreshToken.create({
+        userId: storedToken.userId,
+        tokenHash: newRefreshTokenHash,
+        expiresAt: storedToken.expiresAt,
+        deviceInfo: storedToken.deviceInfo
+    })
+
+    const accessToken = generateAccessToken(storedToken.userId)
+
+    res.cookie('refresh_token', newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+    })
+
+    res.json({ accessToken })
+}
+
+
+
+
+/**
+ * POST /auth/logout
+ */
+const logoutController = async (req, res) => {
+    const token = req.cookies.refresh_token
+
+    if (token) {
+        const tokenHash = hashToken(token)
+        await RefreshToken.updateOne(
+        { tokenHash },
+        { revoked: true }
+        )
+    }
+
+    res.clearCookie('refresh_token')
+    res.json({ message: 'Logged out' })
+}
+
+
+
+export  {signupController,loginController, refreshController, logoutController};

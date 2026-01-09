@@ -29,6 +29,14 @@ const userSchema = new mongoose.Schema({
     provider: {
         type: String,
     },
+    password: {
+        type: String,
+        required: true
+    },
+    isActive:{
+        type:Boolean,
+        default:true
+    },
     createdAt: {
         type: Date,
         default: Date.now
