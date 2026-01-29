@@ -73,7 +73,7 @@ const signupController = async (req, res) => {
         }
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ status: "FAILED", message: "An error occurred "+error.message });
+        return res.status(500).json({ status: "FAILED", message: "An error occurred "+error });
     }
 };
 
