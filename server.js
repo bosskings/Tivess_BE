@@ -2,7 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import router from "./routes/users.js";
+import usersRouter from "./routes/users.js";
+import adminRouter from "./routes/admin.js";
 dotenv.config();
 
 const app = express();
@@ -10,7 +11,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/v1/users", router);
+app.use("/api/v1/users", usersRouter); // users routes
+app.use("/api/v1/admin", adminRouter); // admin routes
 
 app.get("/", (req, res) => {
   res.send("Hello World");

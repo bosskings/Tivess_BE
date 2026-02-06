@@ -15,10 +15,32 @@
     <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
         <header class="mb-8">
             <h1 class="text-2xl font-bold text-slate-800">Video Upload</h1>
-            <p class="text-slate-500 text-sm">Select a file to test your Cloudflare TUS endpoint</p>
+            <p class="text-slate-500 text-sm">Select a file, enter a title and description to test your Cloudflare TUS endpoint</p>
         </header>
 
         <div class="space-y-6">
+            <!-- Title Input -->
+            <div class="flex flex-col gap-2">
+                <label for="title-input" class="text-sm font-semibold text-slate-700">Movie Title</label>
+                <input 
+                    type="text"
+                    id="title-input"
+                    class="block w-full text-sm text-slate-700 border rounded-md px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter movie title"
+                >
+            </div>
+
+            <!-- Description Input -->
+            <div class="flex flex-col gap-2">
+                <label for="description-input" class="text-sm font-semibold text-slate-700">Description</label>
+                <textarea
+                    id="description-input"
+                    rows="2"
+                    class="block w-full text-sm text-slate-700 border rounded-md px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Enter movie description"
+                ></textarea>
+            </div>
+
             <!-- Simple File Selection -->
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-semibold text-slate-700">Choose Video File</label>
@@ -79,6 +101,8 @@
 
     <script>
         const fileInput = document.getElementById('file-input');
+        const titleInput = document.getElementById('title-input');
+        const descriptionInput = document.getElementById('description-input');
         const startBtn = document.getElementById('start-btn');
         const progressContainer = document.getElementById('progress-container');
         const barFill = document.getElementById('bar-fill');
@@ -90,20 +114,34 @@
 
         let currentUpload = null;
 
-        // Enable button when file is picked
+        // Utility to enable/disable start button based on input completeness
+        function updateStartBtn() {
+            startBtn.disabled = !(
+                fileInput.files[0] &&
+                titleInput.value.trim() &&
+                descriptionInput.value.trim()
+            );
+        }
+
         fileInput.onchange = (e) => {
-            startBtn.disabled = !e.target.files[0];
+            updateStartBtn();
             resultContainer.classList.add('hidden');
             progressContainer.classList.add('hidden');
         };
+        titleInput.oninput = updateStartBtn;
+        descriptionInput.oninput = updateStartBtn;
 
         startBtn.onclick = () => {
             const file = fileInput.files[0];
-            if (!file) return;
+            const title = titleInput.value.trim();
+            const description = descriptionInput.value.trim();
+            if (!file || !title || !description) return;
 
             // Reset UI State
             startBtn.disabled = true;
             fileInput.disabled = true;
+            titleInput.disabled = true;
+            descriptionInput.disabled = true;
             progressContainer.classList.remove('hidden');
             resultContainer.classList.add('hidden');
             barFill.style.width = "0%";
@@ -113,14 +151,18 @@
 
             /**
              * TUS Implementation
-             * Matches the endpoint logic in your Node.js backend
+             * Add title and description to the metadata (custom fields)
+             * NOTE: Most TUS server libraries support additional metadata fields;
+             * they are included as base64-encoded header values. Node.js server must parse them.
              */
             currentUpload = new tus.Upload(file, {
-                endpoint: "/api/get-upload-url", // Ensure this matches your route
+                endpoint: "https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadContent", // Ensure this matches your route
                 retryDelays: [0, 3000, 5000, 10000],
                 metadata: {
                     filename: file.name,
                     filetype: file.type,
+                    title: title,
+                    description: description
                 },
                 onError: (error) => {
                     console.error("Upload failed:", error);
@@ -128,6 +170,8 @@
                     statusText.classList.add('text-red-600');
                     startBtn.disabled = false;
                     fileInput.disabled = false;
+                    titleInput.disabled = false;
+                    descriptionInput.disabled = false;
                 },
                 onProgress: (bytesUploaded, bytesTotal) => {
                     const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(0);
@@ -140,7 +184,10 @@
                     resultContainer.classList.remove('hidden');
                     startBtn.disabled = false;
                     fileInput.disabled = false;
+                    titleInput.disabled = false;
+                    descriptionInput.disabled = false;
                     fileInput.value = ""; // Clear input
+                    updateStartBtn();
                 }
             });
 
@@ -153,6 +200,8 @@
                 statusText.innerText = "Cancelled";
                 startBtn.disabled = false;
                 fileInput.disabled = false;
+                titleInput.disabled = false;
+                descriptionInput.disabled = false;
             }
         };
     </script>
