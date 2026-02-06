@@ -1,3 +1,8 @@
+<!-- 
+    Hope CORS is set up here.
+    Note: This HTML assumes that all API endpoints used (the admin-uploadContent and status endpoints)
+    have the necessary CORS headers set to allow requests from the origin of this page.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,15 +16,17 @@
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
-
     <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
         <header class="mb-8">
             <h1 class="text-2xl font-bold text-slate-800">Video Upload</h1>
-            <p class="text-slate-500 text-sm">Select a file, enter a title and description to test your Cloudflare TUS endpoint</p>
+            <p class="text-slate-500 text-sm">
+                Select a file, enter a title and description to test your Cloudflare TUS endpoint.
+                <br>
+                <span class="italic text-xs text-slate-400">Ensure CORS is configured correctly on backend endpoints.</span>
+            </p>
         </header>
 
         <div class="space-y-6">
-            <!-- Title Input -->
             <div class="flex flex-col gap-2">
                 <label for="title-input" class="text-sm font-semibold text-slate-700">Movie Title</label>
                 <input 
@@ -29,8 +36,6 @@
                     placeholder="Enter movie title"
                 >
             </div>
-
-            <!-- Description Input -->
             <div class="flex flex-col gap-2">
                 <label for="description-input" class="text-sm font-semibold text-slate-700">Description</label>
                 <textarea
@@ -40,8 +45,6 @@
                     placeholder="Enter movie description"
                 ></textarea>
             </div>
-
-            <!-- Simple File Selection -->
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-semibold text-slate-700">Choose Video File</label>
                 <input 
@@ -57,8 +60,6 @@
                         cursor-pointer"
                 >
             </div>
-
-            <!-- Upload Action -->
             <button 
                 id="start-btn" 
                 disabled 
@@ -68,7 +69,6 @@
             </button>
         </div>
 
-        <!-- Progress Tracking -->
         <div id="progress-container" class="mt-8 hidden border-t pt-6">
             <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-bold text-slate-700" id="status-text">Uploading...</span>
@@ -85,7 +85,6 @@
             </div>
         </div>
 
-        <!-- Success Message -->
         <div id="result-container" class="mt-8 hidden p-4 bg-emerald-50 rounded-xl border border-emerald-100">
             <div class="flex items-center gap-2 mb-2">
                 <div class="bg-emerald-500 rounded-full p-1">
@@ -98,7 +97,6 @@
             <p class="text-emerald-700 text-[10px] font-mono break-all leading-relaxed" id="video-url"></p>
         </div>
 
-        <!-- Media Player Preview - Only playable when ready -->
         <div id="media-preview-section" class="mt-8 hidden p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center">
             <video id="ready-video" class="w-full rounded-lg" style="max-height:320px;" playsinline></video>
             <div id="media-ready-status" class="mt-2 text-xs font-mono text-slate-500 flex items-center gap-2">
@@ -109,6 +107,11 @@
     </div>
 
     <script>
+        // NOTE: To avoid CORS issues, ensure that:
+        // 1. /api/v1/admin/admin-uploadContent endpoint allows CORS from this origin.
+        // 2. Any Cloudflare upload URLs returned also have correct CORS configuration.
+        // 3. All polling/status endpoints (e.g. /admin-uploadStatus/:uid) allow cross-origin requests.
+
         const fileInput = document.getElementById('file-input');
         const titleInput = document.getElementById('title-input');
         const descriptionInput = document.getElementById('description-input');
@@ -121,14 +124,13 @@
         const videoUrlText = document.getElementById('video-url');
         const cancelBtn = document.getElementById('cancel-btn');
 
-        // Elements for the new video preview logic
+        // Elements for video preview logic
         const mediaPreview = document.getElementById('media-preview-section');
         const readyVideo = document.getElementById('ready-video');
         const mediaStatusDot = document.getElementById('media-status-dot');
         const mediaStatusLabel = document.getElementById('media-status-label');
 
         let currentUpload = null;
-        let lastUid = null;
 
         function updateStartBtn() {
             startBtn.disabled = !(
@@ -145,7 +147,6 @@
             mediaPreview.classList.add('hidden');
             mediaStatusLabel.innerText = "Waiting for video to be ready...";
             mediaStatusDot.className = "inline-block w-2 h-2 rounded-full bg-yellow-400";
-            lastUid = null;
         }
 
         fileInput.onchange = () => {
@@ -157,7 +158,7 @@
         titleInput.oninput = updateStartBtn;
         descriptionInput.oninput = updateStartBtn;
 
-        // Wait until cloudflare video is ready before enabling playback.
+        // This version uses the correct backend and status API paths.
         async function waitUntilReady(videoUID) {
             mediaPreview.classList.remove('hidden');
             mediaStatusLabel.innerText = "Waiting for video to be ready...";
@@ -165,13 +166,13 @@
             readyVideo.removeAttribute('src');
             readyVideo.removeAttribute('controls');
             readyVideo.load();
-            // Set the Cloudflare Stream playback URL here; update as needed
+            // Update the playback URL to use the real customer's subdomain (replace with yours if needed)
             const videoSrcUrl = `https://customer-9d7370da3bf59a3cb531bfa09ef685e4.cloudflarestream.com/${videoUID}/manifest/video.m3u8`;
 
             const interval = setInterval(async () => {
                 try {
-                    // Call your backend endpoint to check readiness
-                    const res = await fetch(`/api/videos/${videoUID}/is-ready`);
+                    const res = await fetch(`/api/v1/admin/admin-uploadStatus/${encodeURIComponent(videoUID)}`);
+                    if (!res.ok) throw new Error(await res.text());
                     const data = await res.json();
                     if (data.ready) {
                         clearInterval(interval);
@@ -191,18 +192,16 @@
                               ? "inline-block w-2 h-2 rounded-full bg-red-500"
                               : "inline-block w-2 h-2 rounded-full bg-yellow-400";
                         console.log("Still processing:", data.state);
-                        if (data.state === "error") {
-                            clearInterval(interval);
-                        }
+                        if (data.state === "error") clearInterval(interval);
                     }
                 } catch (err) {
-                    mediaStatusLabel.innerText = "Error checking video status.";
+                    mediaStatusLabel.innerText = "Error checking video status (possible CORS issue?).";
                     mediaStatusDot.className = "inline-block w-2 h-2 rounded-full bg-red-500";
                 }
             }, 10000);
         }
 
-        startBtn.onclick = () => {
+        startBtn.onclick = async () => {
             const file = fileInput.files[0];
             const title = titleInput.value.trim();
             const description = descriptionInput.value.trim();
@@ -220,18 +219,40 @@
             statusText.classList.remove('text-red-600');
             resetMediaPreview();
 
+            // Step 1: Request an upload URL and video UID from our backend
+            let uploadURL, videoUID;
+            try {
+                const initRes = await fetch('/api/v1/admin/admin-uploadContent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description }),
+                    // CORS: make sure server allows this origin!
+                });
+                if (!initRes.ok) throw new Error((await initRes.json()).message || "Failed to get upload URL");
+                const initData = await initRes.json();
+                uploadURL = initData.data.uploadURL;
+                videoUID = initData.data.videoUID;
+            } catch (error) {
+                statusText.innerText = "Error getting upload URL (CORS?)";
+                statusText.classList.add('text-red-600');
+                startBtn.disabled = false;
+                fileInput.disabled = false;
+                titleInput.disabled = false;
+                descriptionInput.disabled = false;
+                return;
+            }
+
+            // Step 2: Do TUS upload directly to Cloudflare's provided endpoint
             currentUpload = new tus.Upload(file, {
-                endpoint: "/api/v1/admin/admin-uploadContent",
+                endpoint: uploadURL, // now using direct uploadUrl from backend
                 retryDelays: [0, 3000, 5000, 10000],
                 metadata: {
                     filename: file.name,
-                    filetype: file.type,
-                    title: title,
-                    description: description
+                    filetype: file.type
                 },
                 onError: (error) => {
                     console.error("Upload failed:", error);
-                    statusText.innerText = "Upload Error";
+                    statusText.innerText = "Upload Error (CORS?)";
                     statusText.classList.add('text-red-600');
                     startBtn.disabled = false;
                     fileInput.disabled = false;
@@ -244,37 +265,35 @@
                     percentText.innerText = percentage + "%";
                 },
                 onSuccess: async () => {
-                    // receive the movie UID from your backend (you may need to adjust this logic to fit your server's response)
-                    try {
-                        // Example: expect a JSON with { data: { videoUID: ... } }
-                        const lastUrl = currentUpload.url;
-                        statusText.innerText = "Upload Complete!";
-                        videoUrlText.innerText = lastUrl;
-                        resultContainer.classList.remove('hidden');
-                        startBtn.disabled = false;
-                        fileInput.disabled = false;
-                        titleInput.disabled = false;
-                        descriptionInput.disabled = false;
-                        fileInput.value = ""; // Clear input
-                        updateStartBtn();
-
-                        // Fetch the video UID (your API may need to be adjusted)
-                        const response = await fetch(lastUrl, { method: "HEAD" });
-                        const videoUID = response.headers.get('cf-video-uid'); // You may need to adjust this extraction
-                        if (videoUID) {
-                            waitUntilReady(videoUID);
-                        } else {
-                            // As fallback, poll your backend for most recently uploaded UID (or update to match your API/response)
-                            // For now, just hide the preview if unavailable
-                            mediaPreview.classList.add('hidden');
-                        }
-                    } catch (e) {
+                    statusText.innerText = "Upload Complete!";
+                    videoUrlText.innerText = uploadURL;
+                    resultContainer.classList.remove('hidden');
+                    startBtn.disabled = false;
+                    fileInput.disabled = false;
+                    titleInput.disabled = false;
+                    descriptionInput.disabled = false;
+                    fileInput.value = "";
+                    updateStartBtn();
+                    // Launch status polling (uses backend to poll Cloudflare status for videoUID)
+                    if (videoUID) {
+                        waitUntilReady(videoUID);
+                    } else {
+                        // Fallback: no preview
                         mediaPreview.classList.add('hidden');
                     }
                 }
             });
 
-            currentUpload.start();
+            try {
+                currentUpload.start();
+            } catch (err) {
+                statusText.innerText = "Failed to start upload (CORS?)";
+                statusText.classList.add('text-red-600');
+                startBtn.disabled = false;
+                fileInput.disabled = false;
+                titleInput.disabled = false;
+                descriptionInput.disabled = false;
+            }
         };
 
         cancelBtn.onclick = () => {

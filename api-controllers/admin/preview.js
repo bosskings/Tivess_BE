@@ -1,6 +1,6 @@
 import User from "../../models/User.js";
 import WatchParty from "../../models/WatchParty.js";
-import Movies from "../../models/Movies.js"; // Make sure the path and export are correct
+import Movies from "../../models/Movie.js"; // Make sure the path and export are correct
 // Add any other models here as needed
 
 const adminPreview = async (req, res) => {
