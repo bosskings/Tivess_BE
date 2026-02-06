@@ -3,7 +3,7 @@ import adminPreview from "../api-controllers/admin/preview.js";
 import {adminUploadContent, adminCheckUploadStatus} from "../api-controllers/admin/uploadContent.js";
 import { getAllUsers,changeUserStatus } from "../api-controllers/admin/users.js";
 // import { getActiveWatchParties } from "../api-controllers/admin/watchParty.js";
-import {adminUpdatePaymentPlan} from "../api-controllers/admin/updatePaymentPlan.js";
+import {adminUpdatePaymentPlan, getPaymentPlans} from "../api-controllers/admin/updatePaymentPlan.js";
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const router = express.Router();
     router.get('/admin-uploadStatus/:uid', adminCheckUploadStatus);
 
 
-    router.get('/admin-getPaymentPlan', getPaymentPlan);
+    router.get('/admin-getPaymentPlan', getPaymentPlans);
     router.patch('/admin-updatePaymentPlan', adminUpdatePaymentPlan);
 
     // admin handle users
