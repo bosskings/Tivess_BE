@@ -171,7 +171,7 @@
 
             const interval = setInterval(async () => {
                 try {
-                    const res = await fetch(`/api/v1/admin/admin-uploadStatus/${encodeURIComponent(videoUID)}`);
+                    const res = await fetch(`https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadStatus/${encodeURIComponent(videoUID)}`);
                     if (!res.ok) throw new Error(await res.text());
                     const data = await res.json();
                     if (data.ready) {
