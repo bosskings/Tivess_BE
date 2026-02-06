@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 
 const movieSchema = new mongoose.Schema({
+    uid: {
+        type: String,
+        required: true,
+        unique: true
+    },
     title: {
         type: String,
         required: true,

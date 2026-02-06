@@ -19,7 +19,7 @@ const router = express.Router();
     router.get('/admin-getUsers', getAllUsers);
     router.patch('/admin-updateUsers', changeUserStatus);
 
-    router.get('/admin-watchParty', )
+    // router.get('/admin-watchParty', )
     
 
 export default router;
