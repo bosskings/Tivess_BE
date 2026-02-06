@@ -9,7 +9,8 @@ const router = express.Router();
 
 
     router.get('/admin-home', adminPreview);
-    router.get('/admin-uploadContent', adminUploadContent);
+    router.post('/admin-uploadContent', adminUploadContent);
+    router.get('/admin-uploadStatus/:uid', adminUploadContent);
 
 
     router.get('/admin-getPaymentPlan', getPaymentPlan);

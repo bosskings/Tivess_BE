@@ -45,4 +45,32 @@ const adminUploadContent = async (req, res) => {
   }
 };
 
-export default adminUploadContent;
+
+
+// function to check if the video is uploaded to cloudflare'
+const adminCheckUploadStatus = async (req, res) => {
+    const { uid } = req.params;
+  
+    try {
+      const r = await axios.get(
+        `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream/${uid}`,
+        {
+          headers: {
+            Authorization: `Bearer ${CF_API_TOKEN}`
+          }
+        }
+      );
+  
+      const state = r.data.result.status.state;
+  
+      res.json({
+        ready: state === "ready",
+        state // queued | inprogress | ready | error
+      });
+    } catch (err) {
+      console.error(err.response?.data || err);
+      res.status(500).json({ error: "Failed to check video status" });
+    }
+  }
+
+export  {adminUploadContent, adminCheckUploadStatus};

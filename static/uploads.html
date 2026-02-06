@@ -97,6 +97,15 @@
             </div>
             <p class="text-emerald-700 text-[10px] font-mono break-all leading-relaxed" id="video-url"></p>
         </div>
+
+        <!-- Media Player Preview - Only playable when ready -->
+        <div id="media-preview-section" class="mt-8 hidden p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center">
+            <video id="ready-video" class="w-full rounded-lg" style="max-height:320px;" playsinline></video>
+            <div id="media-ready-status" class="mt-2 text-xs font-mono text-slate-500 flex items-center gap-2">
+                <span id="media-status-dot" class="inline-block w-2 h-2 rounded-full bg-yellow-400"></span>
+                <span id="media-status-label">Waiting for video to be ready...</span>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -112,9 +121,15 @@
         const videoUrlText = document.getElementById('video-url');
         const cancelBtn = document.getElementById('cancel-btn');
 
-        let currentUpload = null;
+        // Elements for the new video preview logic
+        const mediaPreview = document.getElementById('media-preview-section');
+        const readyVideo = document.getElementById('ready-video');
+        const mediaStatusDot = document.getElementById('media-status-dot');
+        const mediaStatusLabel = document.getElementById('media-status-label');
 
-        // Utility to enable/disable start button based on input completeness
+        let currentUpload = null;
+        let lastUid = null;
+
         function updateStartBtn() {
             startBtn.disabled = !(
                 fileInput.files[0] &&
@@ -123,13 +138,69 @@
             );
         }
 
-        fileInput.onchange = (e) => {
+        function resetMediaPreview() {
+            readyVideo.removeAttribute('src');
+            readyVideo.removeAttribute('controls');
+            readyVideo.load();
+            mediaPreview.classList.add('hidden');
+            mediaStatusLabel.innerText = "Waiting for video to be ready...";
+            mediaStatusDot.className = "inline-block w-2 h-2 rounded-full bg-yellow-400";
+            lastUid = null;
+        }
+
+        fileInput.onchange = () => {
             updateStartBtn();
             resultContainer.classList.add('hidden');
             progressContainer.classList.add('hidden');
+            resetMediaPreview();
         };
         titleInput.oninput = updateStartBtn;
         descriptionInput.oninput = updateStartBtn;
+
+        // Wait until cloudflare video is ready before enabling playback.
+        async function waitUntilReady(videoUID) {
+            mediaPreview.classList.remove('hidden');
+            mediaStatusLabel.innerText = "Waiting for video to be ready...";
+            mediaStatusDot.className = "inline-block w-2 h-2 rounded-full bg-yellow-400";
+            readyVideo.removeAttribute('src');
+            readyVideo.removeAttribute('controls');
+            readyVideo.load();
+            // Set the Cloudflare Stream playback URL here; update as needed
+            const videoSrcUrl = `https://customer-9d7370da3bf59a3cb531bfa09ef685e4.cloudflarestream.com/${videoUID}/manifest/video.m3u8`;
+
+            const interval = setInterval(async () => {
+                try {
+                    // Call your backend endpoint to check readiness
+                    const res = await fetch(`/api/videos/${videoUID}/is-ready`);
+                    const data = await res.json();
+                    if (data.ready) {
+                        clearInterval(interval);
+                        mediaStatusLabel.innerText = "Video is ready! Click play.";
+                        mediaStatusDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500";
+                        readyVideo.setAttribute('src', videoSrcUrl);
+                        readyVideo.setAttribute('controls', true);
+                        readyVideo.load();
+                        readyVideo.style.display = "block";
+                        console.log("Video is ready 🎬");
+                    } else {
+                        mediaStatusLabel.innerText = data.state === 'error'
+                          ? "There was an error processing your video."
+                          : `Still processing: ${data.state}`;
+                        mediaStatusDot.className =
+                            data.state === 'error'
+                              ? "inline-block w-2 h-2 rounded-full bg-red-500"
+                              : "inline-block w-2 h-2 rounded-full bg-yellow-400";
+                        console.log("Still processing:", data.state);
+                        if (data.state === "error") {
+                            clearInterval(interval);
+                        }
+                    }
+                } catch (err) {
+                    mediaStatusLabel.innerText = "Error checking video status.";
+                    mediaStatusDot.className = "inline-block w-2 h-2 rounded-full bg-red-500";
+                }
+            }, 10000);
+        }
 
         startBtn.onclick = () => {
             const file = fileInput.files[0];
@@ -137,7 +208,6 @@
             const description = descriptionInput.value.trim();
             if (!file || !title || !description) return;
 
-            // Reset UI State
             startBtn.disabled = true;
             fileInput.disabled = true;
             titleInput.disabled = true;
@@ -148,15 +218,10 @@
             percentText.innerText = "0%";
             statusText.innerText = "Uploading...";
             statusText.classList.remove('text-red-600');
+            resetMediaPreview();
 
-            /**
-             * TUS Implementation
-             * Add title and description to the metadata (custom fields)
-             * NOTE: Most TUS server libraries support additional metadata fields;
-             * they are included as base64-encoded header values. Node.js server must parse them.
-             */
             currentUpload = new tus.Upload(file, {
-                endpoint: "https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadContent", // Ensure this matches your route
+                endpoint: "/api/v1/admin/admin-uploadContent",
                 retryDelays: [0, 3000, 5000, 10000],
                 metadata: {
                     filename: file.name,
@@ -178,16 +243,34 @@
                     barFill.style.width = percentage + "%";
                     percentText.innerText = percentage + "%";
                 },
-                onSuccess: () => {
-                    statusText.innerText = "Upload Complete!";
-                    videoUrlText.innerText = currentUpload.url;
-                    resultContainer.classList.remove('hidden');
-                    startBtn.disabled = false;
-                    fileInput.disabled = false;
-                    titleInput.disabled = false;
-                    descriptionInput.disabled = false;
-                    fileInput.value = ""; // Clear input
-                    updateStartBtn();
+                onSuccess: async () => {
+                    // receive the movie UID from your backend (you may need to adjust this logic to fit your server's response)
+                    try {
+                        // Example: expect a JSON with { data: { videoUID: ... } }
+                        const lastUrl = currentUpload.url;
+                        statusText.innerText = "Upload Complete!";
+                        videoUrlText.innerText = lastUrl;
+                        resultContainer.classList.remove('hidden');
+                        startBtn.disabled = false;
+                        fileInput.disabled = false;
+                        titleInput.disabled = false;
+                        descriptionInput.disabled = false;
+                        fileInput.value = ""; // Clear input
+                        updateStartBtn();
+
+                        // Fetch the video UID (your API may need to be adjusted)
+                        const response = await fetch(lastUrl, { method: "HEAD" });
+                        const videoUID = response.headers.get('cf-video-uid'); // You may need to adjust this extraction
+                        if (videoUID) {
+                            waitUntilReady(videoUID);
+                        } else {
+                            // As fallback, poll your backend for most recently uploaded UID (or update to match your API/response)
+                            // For now, just hide the preview if unavailable
+                            mediaPreview.classList.add('hidden');
+                        }
+                    } catch (e) {
+                        mediaPreview.classList.add('hidden');
+                    }
                 }
             });
 
