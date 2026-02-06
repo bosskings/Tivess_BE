@@ -222,7 +222,7 @@
             // Step 1: Request an upload URL and video UID from our backend
             let uploadURL, videoUID;
             try {
-                const initRes = await fetch('/api/v1/admin/admin-uploadContent', {
+                const initRes = await fetch('https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadContent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title, description }),
