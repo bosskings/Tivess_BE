@@ -3,7 +3,7 @@ import adminPreview from "../api-controllers/admin/preview.js";
 import {adminUploadContent, adminCheckUploadStatus} from "../api-controllers/admin/uploadContent.js";
 import { getAllUsers,changeUserStatus } from "../api-controllers/admin/users.js";
 // import { getActiveWatchParties } from "../api-controllers/admin/watchParty.js";
-import adminUpdatePaymentPlan from "../api-controllers/admin/updatePaymentPlan.js";
+import {adminUpdatePaymentPlan} from "../api-controllers/admin/updatePaymentPlan.js";
 
 const router = express.Router();
 
