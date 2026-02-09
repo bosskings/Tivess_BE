@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Cloudflare Stream Uploader</title>
+    <!-- Tus is the resumable upload protocol used by Cloudflare -->
+    <script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.0.1/dist/tus.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; max-width: 500px; margin: auto; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input, textarea { width: 100%; padding: 0.5rem; box-sizing: border-box; }
+        #progress-container { display: none; margin-top: 1rem; }
+        #progress-bar { width: 0%; height: 20px; background: #007bff; border-radius: 4px; transition: width 0.3s; }
+        #status { margin-top: 1rem; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <h2>Upload to Stream</h2>
+    
+    <div class="form-group">
+        <label>Video File</label>
+        <input type="file" id="video-file" accept="video/*">
+    </div>
+
+    <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="video-title" placeholder="My Awesome Video">
+    </div>
+
+    <div class="form-group">
+        <label>Description</label>
+        <textarea id="video-desc" rows="3"></textarea>
+    </div>
+
+    <button id="upload-btn">Start Upload</button>
+
+    <div id="progress-container">
+        <p>Uploading: <span id="percent">0</span>%</p>
+        <div style="background: #eee; border-radius: 4px; overflow: hidden;">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <div id="status"></div>
+
+    <script>
+        const uploadBtn = document.getElementById('upload-btn');
+        const statusDiv = document.getElementById('status');
+        const progressBar = document.getElementById('progress-bar');
+        const percentText = document.getElementById('percent');
+        const progressContainer = document.getElementById('progress-container');
+
+        // Note: In a production app, you should NOT put your API Token here.
+        // You should fetch an "Upload URL" from your own server to keep tokens hidden.
+        const CF_ACCOUNT_ID = '9d7370da3bf59a3cb531bfa09ef685e4';
+        const CF_API_TOKEN = 'Xwynb4VDAyxjzGk_jNRMFxr2Waoh1sts9-r6Cm2J';
+
+        uploadBtn.addEventListener('click', async () => {
+            const file = document.getElementById('video-file').files[0];
+            const title = document.getElementById('video-title').value;
+            const desc = document.getElementById('video-desc').value;
+
+            if (!file) return (statusDiv.innerText = 'Please select a file.');
+
+            statusDiv.innerText = 'Initializing...';
+            progressContainer.style.display = 'block';
+
+            // 1. Create the Upload via TUS
+            const upload = new tus.Upload(file, {
+                endpoint: `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream`,
+                headers: {
+                    'Authorization': `Bearer ${CF_API_TOKEN}`
+                },
+                chunkSize: 5 * 1024 * 1024, // 5MB chunks
+                metadata: {
+                    filename: file.name,
+                    filetype: file.type,
+                    name: title,
+                    description: desc
+                },
+                onError: (error) => {
+                    statusDiv.innerText = 'Upload failed: ' + error;
+                },
+                onProgress: (bytesUploaded, bytesTotal) => {
+                    const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                    progressBar.style.width = percentage + '%';
+                    percentText.innerText = percentage;
+                },
+                onSuccess: () => {
+                    const videoId = upload.url.split('/').pop();
+                    statusDiv.innerHTML = `Success! Video ID: <strong>${videoId}</strong>`;
+                }
+            });
+
+            upload.start();
+        });
+    </script>
+</body>
+</html>

@@ -30,6 +30,14 @@ const generateAccessToken = userId =>
     jwt.verify(token, process.env.JWT_SECRET)
 
 
+// Admin JWT – no userId, type "ADMIN" for middleware
+const generateAdminAccessToken = adminAdmin =>
+  jwt.sign(
+    { adminAdmin, type: "ADMIN" },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES || "24h" }
+  )
+
 
 export {
     hashPassword,
@@ -38,5 +46,6 @@ export {
     hashToken,
     addDays,
     generateAccessToken,
-    verifyAccessToken
+    verifyAccessToken,
+    generateAdminAccessToken
 };
