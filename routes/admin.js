@@ -1,7 +1,7 @@
 import express from "express";
 import adminAuthMiddleware from "../middleware/adminAuthMiddleware.js";
 import adminPreview from "../api-controllers/admin/preview.js";
-import { adminLoginController } from "../api-controllers/admin/auth.js";
+import adminAuthController from "../api-controllers/admin/auth.js";
 import {adminUploadContent, adminCheckUploadStatus} from "../api-controllers/admin/uploadContent.js";
 import { getAllUsers,changeUserStatus } from "../api-controllers/admin/users.js";
 // import { getActiveWatchParties } from "../api-controllers/admin/watchParty.js";
@@ -10,7 +10,7 @@ import {adminUpdatePaymentPlan, getPaymentPlans} from "../api-controllers/admin/
 const router = express.Router();
 
 // Public – no token required
-router.post("/admin-login", adminLoginController);
+router.post("/admin-login", adminAuthController);
 
 // Protected – require valid admin token
 router.use(adminAuthMiddleware);
