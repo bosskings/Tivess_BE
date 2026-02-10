@@ -1,8 +1,8 @@
 import { generateAdminAccessToken } from "../../utils/auth.utils.js";
 
 // Hardcoded admin credentials – replace in production!
-const ADMIN_LOGIN_ID = "admin001@tivess.media";
-const ADMIN_PASSWORD = "Tivess#Tripp123.";
+const ADMIN_LOGIN_ID = process.env.ADMIN_LOGIN_ID;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // Admin login route
 const adminAuthController = async (req, res) => {

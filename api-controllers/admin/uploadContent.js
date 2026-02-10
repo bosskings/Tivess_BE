@@ -21,6 +21,7 @@ const adminUploadContent = async (req, res) => {
     );
 
     const { uploadURL, uid } = cf.data.result;
+    console.log(cf.data.result);
 
     // Save details from the movie in the movies model
     const movieDoc = await Movie.create({
@@ -49,28 +50,50 @@ const adminUploadContent = async (req, res) => {
 
 // function to check if the video is uploaded to cloudflare'
 const adminCheckUploadStatus = async (req, res) => {
-    const { uid } = req.params;
-  
-    try {
-      const r = await axios.get(
-        `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream/${uid}`,
-        {
-          headers: {
-            Authorization: `Bearer ${CF_API_TOKEN}`
-          }
+  const { uid } = req.params;
+
+  try {
+    // Query Cloudflare Stream for the current video status
+    const cfRes = await axios.get(
+      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream/${uid}`,
+      {
+        headers: {
+          Authorization: `Bearer ${CF_API_TOKEN}`
         }
-      );
-  
-      const state = r.data.result.status.state;
-  
-      res.json({
-        ready: state === "ready",
-        state // queued | inprogress | ready | error
-      });
-    } catch (err) {
-      console.error(err.response?.data || err);
-      res.status(500).json({ error: "Failed to check video status" });
+      }
+    );
+
+    const result = cfRes.data.result;
+    // result.status.state: "queued" | "inprogress" | "ready" | "error"
+    // See: https://developers.cloudflare.com/api/operations/stream-get-video
+    const state = result.status?.state;
+    const isReady = state === "ready";
+
+    // Optionally include additional info, e.g. playback
+    let playbackUrl = null;
+    if (isReady && result.playback) {
+      playbackUrl = result.playback.hls;
     }
+
+    res.json({
+      status: "SUCCESS",
+      message: isReady
+        ? "Video is ready to be viewed."
+        : `Video is processing (${state})`,
+      data: {
+        ready: isReady,
+        state,
+        playbackUrl: playbackUrl || null
+      }
+    });
+  } catch (err) {
+    console.error(err.response?.data || err);
+    res.status(500).json({
+      status: "FAILED",
+      message:
+        "Failed to check video status: " + (err.response?.data || err).toString()
+    });
   }
+};
 
 export  {adminUploadContent, adminCheckUploadStatus};

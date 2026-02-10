@@ -1,71 +1,112 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Upload to Cloudflare Stream</title>
-  <script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.0.1/dist/tus.min.js"></script>
+  <title>Video Upload</title>
 </head>
 <body>
 
-<input id="title" placeholder="Title"><br>
-<textarea id="description" placeholder="Description"></textarea><br>
-<input type="file" id="file"><br>
-<button id="upload">Upload</button>
+  <h2>Upload Video</h2>
 
-<p id="status"></p>
+  <form id="uploadForm">
+    <input type="text" id="title" placeholder="Title" required />
+    <br><br>
 
-<script> 
+    <textarea id="description" placeholder="Description"></textarea>
+    <br><br>
 
+    <input type="file" id="video" accept="video/*" required />
+    <br><br>
 
-    const uploadBtn = document.getElementById("upload");
-    const status = document.getElementById("status");
+    <button type="submit">Upload</button>
+  </form>
 
-    uploadBtn.onclick = async () => {
-    const file = document.getElementById("file").files[0];
-    const title = document.getElementById("title").value;
-    const description = document.getElementById("description").value;
+  <p id="status"></p>
 
-    if (!file || !title || !description) {
-        alert("Missing file, title, or description");
-        return;
+  <script src="https://unpkg.com/tus-js-client/dist/tus.js"></script>
+
+</body>
+<script>
+    const form = document.getElementById("uploadForm")
+    const status = document.getElementById("status")
+
+    form.addEventListener("submit", async (e) => {
+    e.preventDefault()
+
+    const file = document.getElementById("video").files[0]
+    const title = document.getElementById("title").value
+    const description = document.getElementById("description").value
+
+    if (!file) {
+        alert("Select a video")
+        return
     }
 
-    status.textContent = "Requesting upload URL...";
+    status.innerText = "Requesting upload slot..."
 
-    // 1) Ask your backend for a Cloudflare upload URL
+    // 1️⃣ Ask your backend to create a TUS upload
     const res = await fetch("https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadContent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description })
-    });
+        headers: {
+        "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+        title,
+        description,
+        filename: file.name,
+        filesize: file.size,
+        filetype: file.type
+        })
+    })
 
-    const json = await res.json();
+    const data = await res.json()
+    console.log(data);
 
-    const uploadURL = json.data.uploadURL;
-    const videoUID = json.data.videoUID;
+    const uploadUrl = data.uploadURL   // from Cloudflare Stream or tus-server
+    const uploadId = data.videoUID        // your DB record id
 
-    status.textContent = "Uploading video...";
-
-    // 2) Upload the file directly to Cloudflare using TUS
+    // 2️⃣ Upload file directly using TUS
     const upload = new tus.Upload(file, {
-        endpoint: uploadURL,
+        endpoint: uploadUrl,
+        retryDelays: [0, 3000, 5000, 10000],
         metadata: {
         filename: file.name,
-        filetype: file.type
+        filetype: file.type,
+        title,
+        description
         },
 
-        onError(err) {
-        console.error(err);
-        status.textContent = "Upload failed";
+        onError: function (error) {
+            status.innerText = "Upload failed: " + error;
         },
 
-        onSuccess() {
-        status.textContent = "Upload finished. Video UID: " + videoUID;
+        onProgress: function (bytesUploaded, bytesTotal) {
+        const percent = ((bytesUploaded / bytesTotal) * 100).toFixed(1)
+        status.innerText = `Uploading: ${percent}%`
+        },
+
+        onSuccess: async function () {
+            status.innerText = "Finalizing...(done)"
+
+            // 3️⃣ Tell backend upload finished
+            const statusRes = await fetch("https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadContent", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                uploadId,
+                tusUrl: upload.url
+                })
+            })
+
+            const statusData = await statusRes.json();
+            if (statusData.data?.state === "ready") status.innerText = "Upload complete 🎉";
+
+            status.innerText = "Upload complete 🎉";
         }
     });
 
     upload.start();
-    };
-
+});
 </script>
-</body>
 </html>
