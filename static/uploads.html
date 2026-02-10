@@ -1,7 +1,17 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Video Upload</title>
+    <head>
+        <title>Video Upload</title>
+        <script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.0.1/dist/tus.min.js"></script>
+        <style>
+            body { font-family: sans-serif; padding: 2rem; max-width: 500px; margin: auto; }
+            .form-group { margin-bottom: 1rem; }
+            label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+            input, textarea { width: 100%; padding: 0.5rem; box-sizing: border-box; }
+            #progress-container { display: none; margin-top: 1rem; }
+            #progress-bar { width: 0%; height: 20px; background: #007bff; border-radius: 4px; transition: width 0.3s; }
+            #status { margin-top: 1rem; font-size: 0.9rem; }
+        </style>
 </head>
 <body>
 
@@ -22,7 +32,6 @@
 
   <p id="status"></p>
 
-  <script src="https://unpkg.com/tus-js-client/dist/tus.js"></script>
 
 </body>
 <script>
@@ -44,7 +53,7 @@
     status.innerText = "Requesting upload slot..."
 
     // 1️⃣ Ask your backend to create a TUS upload
-    const res = await fetch("https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadContent", {
+    const res = await fetch("http://localhost:3500/api/v1/admin/admin-uploadContent", {
         method: "POST",
         headers: {
         "Content-Type": "application/json"
@@ -88,7 +97,7 @@
             status.innerText = "Finalizing...(done)"
 
             // 3️⃣ Tell backend upload finished
-            const statusRes = await fetch("https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadContent", {
+            const statusRes = await fetch("http://localhost:3500/api/v1/admin/admin-uploadContent", {
                 method: "POST",
                 headers: {
                 "Content-Type": "application/json"
