@@ -1,121 +1,127 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Video Upload</title>
-        <script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.0.1/dist/tus.min.js"></script>
-        <style>
-            body { font-family: sans-serif; padding: 2rem; max-width: 500px; margin: auto; }
-            .form-group { margin-bottom: 1rem; }
-            label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
-            input, textarea { width: 100%; padding: 0.5rem; box-sizing: border-box; }
-            #progress-container { display: none; margin-top: 1rem; }
-            #progress-bar { width: 0%; height: 20px; background: #007bff; border-radius: 4px; transition: width 0.3s; }
-            #status { margin-top: 1rem; font-size: 0.9rem; }
-        </style>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Cloudflare Stream Uploader</title>
+    <!-- Tus is the resumable upload protocol used by Cloudflare -->
+    <script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.0.1/dist/tus.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; max-width: 500px; margin: auto; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input, textarea { width: 100%; padding: 0.5rem; box-sizing: border-box; }
+        #progress-container { display: none; margin-top: 1rem; }
+        #progress-bar { width: 0%; height: 20px; background: #007bff; border-radius: 4px; transition: width 0.3s; }
+        #status { margin-top: 1rem; font-size: 0.9rem; }
+    </style>
 </head>
 <body>
 
-  <h2>Upload Video</h2>
+    <h2>Upload to Stream</h2>
+    
+    <div class="form-group">
+        <label>Video File</label>
+        <input type="file" id="video-file" accept="video/*">
+    </div>
 
-  <form id="uploadForm">
-    <input type="text" id="title" placeholder="Title" required />
-    <br><br>
+    <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="video-title" placeholder="My Awesome Video">
+    </div>
 
-    <textarea id="description" placeholder="Description"></textarea>
-    <br><br>
+    <div class="form-group">
+        <label>Description</label>
+        <textarea id="video-desc" rows="3"></textarea>
+    </div>
 
-    <input type="file" id="video" accept="video/*" required />
-    <br><br>
+    <button id="upload-btn">Start Upload</button>
 
-    <button type="submit">Upload</button>
-  </form>
+    <div id="progress-container">
+        <p>Uploading: <span id="percent">0</span>%</p>
+        <div style="background: #eee; border-radius: 4px; overflow: hidden;">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
 
-  <p id="status"></p>
+    <div id="status"></div>
 
+    <script>
+        const uploadBtn = document.getElementById('upload-btn');
+        const statusDiv = document.getElementById('status');
+        const progressBar = document.getElementById('progress-bar');
+        const percentText = document.getElementById('percent');
+        const progressContainer = document.getElementById('progress-container');
 
-</body>
-<script>
-    const form = document.getElementById("uploadForm")
-    const status = document.getElementById("status")
+        // Note: In a production app, you should NOT put your API Token here.
+        // You should fetch an "Upload URL" from your own server to keep tokens hidden.
+        const CF_ACCOUNT_ID = '9d7370da3bf59a3cb531bfa09ef685e4';
+        const CF_API_TOKEN = 'Xwynb4VDAyxjzGk_jNRMFxr2Waoh1sts9-r6Cm2J';
 
-    form.addEventListener("submit", async (e) => {
-    e.preventDefault()
+        uploadBtn.addEventListener('click', async () => {
+            const file = document.getElementById('video-file').files[0];
+            const title = document.getElementById('video-title').value;
+            const desc = document.getElementById('video-desc').value;
 
-    const file = document.getElementById("video").files[0]
-    const title = document.getElementById("title").value
-    const description = document.getElementById("description").value
+            if (!file) return (statusDiv.innerText = 'Please select a file.');
 
-    if (!file) {
-        alert("Select a video")
-        return
-    }
+            statusDiv.innerText = 'Initializing...';
+            progressContainer.style.display = 'block';
 
-    status.innerText = "Requesting upload slot..."
-
-    // 1️⃣ Ask your backend to create a TUS upload
-    const res = await fetch("http://localhost:3500/api/v1/admin/admin-uploadContent", {
-        method: "POST",
-        headers: {
-        "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-        title,
-        description,
-        filename: file.name,
-        filesize: file.size,
-        filetype: file.type
-        })
-    })
-
-    const data = await res.json()
-    console.log(data);
-
-    const uploadUrl = data.uploadURL   // from Cloudflare Stream or tus-server
-    const uploadId = data.videoUID        // your DB record id
-
-    // 2️⃣ Upload file directly using TUS
-    const upload = new tus.Upload(file, {
-        endpoint: uploadUrl,
-        retryDelays: [0, 3000, 5000, 10000],
-        metadata: {
-        filename: file.name,
-        filetype: file.type,
-        title,
-        description
-        },
-
-        onError: function (error) {
-            status.innerText = "Upload failed: " + error;
-        },
-
-        onProgress: function (bytesUploaded, bytesTotal) {
-        const percent = ((bytesUploaded / bytesTotal) * 100).toFixed(1)
-        status.innerText = `Uploading: ${percent}%`
-        },
-
-        onSuccess: async function () {
-            status.innerText = "Finalizing...(done)"
-
-            // 3️⃣ Tell backend upload finished
-            const statusRes = await fetch("http://localhost:3500/api/v1/admin/admin-uploadContent", {
-                method: "POST",
+            // 1. Create the Upload via TUS
+            const upload = new tus.Upload(file, {
+                endpoint: `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream`,
                 headers: {
-                "Content-Type": "application/json"
+                    'Authorization': `Bearer ${CF_API_TOKEN}`
                 },
-                body: JSON.stringify({
-                uploadId,
-                tusUrl: upload.url
-                })
-            })
+                chunkSize: 5 * 1024 * 1024, // 5MB chunks
+                metadata: {
+                    filename: file.name,
+                    filetype: file.type,
+                    name: title,
+                    description: desc
+                },
+                onError: (error) => {
+                    statusDiv.innerText = 'Upload failed: ' + error;
+                },
+                onProgress: (bytesUploaded, bytesTotal) => {
+                    const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                    progressBar.style.width = percentage + '%';
+                    percentText.innerText = percentage;
+                },
+                onSuccess: () => {
+                    const videoId = upload.url.split('/').pop();
+                    statusDiv.innerHTML = `Success! Video ID: <strong>${videoId}</strong>`;
 
-            const statusData = await statusRes.json();
-            if (statusData.data?.state === "ready") status.innerText = "Upload complete 🎉";
+                    // After getting the videoId, call backend to store file details
+                    fetch('http://localhost:3500/api/v1/admin/admin-uploadContent', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcwNjg5NDk3LCJleHAiOjE3NzA3NzU4OTd9.SunDAkdb1hY-D1e6O3j44BuDDjydGCEy3MA4a1ofQI0'
+                        },
+                        body: JSON.stringify({
+                            title: title,
+                            description: desc,
+                        uid: videoId
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'SUCCESS') {
+                            statusDiv.innerHTML += `<br>Backend record stored: <strong>${data.message}</strong>`;
+                        } else {
+                            statusDiv.innerHTML += `<br>Backend error: <strong>${data.message}</strong>`;
+                        }
+                    })
+                    .catch(err => {
+                        statusDiv.innerHTML += `<br>Could not contact backend: ${err}`;
+                    });
+                }
+            });
 
-            status.innerText = "Upload complete 🎉";
-        }
-    });
-
-    upload.start();
-});
-</script>
+            upload.start();
+        });
+    </script>
+</body>
 </html>
