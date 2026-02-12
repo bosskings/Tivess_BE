@@ -35,6 +35,36 @@
         <textarea id="video-desc" rows="3"></textarea>
     </div>
 
+    <div class="form-group">
+        <label>Genre</label>
+        <input type="text" id="video-genre" placeholder="e.g. Action, Comedy">
+    </div>
+
+    <div class="form-group">
+        <label>Tags</label>
+        <input type="text" id="video-tags" placeholder="Comma-separated tags">
+    </div>
+
+    <div class="form-group">
+        <label>Release Year</label>
+        <input type="number" id="video-year" placeholder="e.g. 2024">
+    </div>
+
+    <div class="form-group">
+        <label>Duration (Minutes)</label>
+        <input type="number" id="video-minutes" placeholder="e.g. 120">
+    </div>
+
+    <div class="form-group">
+        <label>Rating</label>
+        <input type="text" id="video-rating" placeholder="e.g. PG-13, R">
+    </div>
+
+    <div class="form-group">
+        <label>Poster Image</label>
+        <input type="file" id="video-poster" accept="image/*">
+    </div>
+
     <button id="upload-btn">Start Upload</button>
 
     <div id="progress-container">
@@ -62,8 +92,26 @@
             const file = document.getElementById('video-file').files[0];
             const title = document.getElementById('video-title').value;
             const desc = document.getElementById('video-desc').value;
+            // Collect the additional form fields for category, Genre, Tags, year, Minutes, Rating, poster
+            
+            const genre = document.getElementById('video-genre').value || '';
+            const tags = document.getElementById('video-tags').value || '';
+            const year = document.getElementById('video-year').value || '';
+            const minutes = document.getElementById('video-minutes').value || '';
+            const rating = document.getElementById('video-rating').value || '';
 
-            if (!file) return (statusDiv.innerText = 'Please select a file.');
+            // Check poster file selection 
+            const posterInput = document.getElementById('video-poster');
+            let poster = null;
+            if (posterInput && posterInput.files && posterInput.files.length > 0) {
+                poster = posterInput.files[0];
+            }
+
+            // At least BOTH file and poster should be picked
+            if (!file || !poster) {
+                statusDiv.innerText = 'Please select both a video file and a poster image.';
+                return;
+            }
 
             statusDiv.innerText = 'Initializing...';
             progressContainer.style.display = 'block';
@@ -89,9 +137,41 @@
                     progressBar.style.width = percentage + '%';
                     percentText.innerText = percentage;
                 },
-                onSuccess: () => {
+                onSuccess: async () => {
                     const videoId = upload.url.split('/').pop();
                     statusDiv.innerHTML = `Success! Video ID: <strong>${videoId}</strong>`;
+
+                    // upload thumbnail/poster to Cloudflare Stream using the video UID
+                    if (poster) {
+                        try {
+                            statusDiv.innerHTML += '<br>Uploading poster to Cloudflare...';
+                            const thumbnailUrl = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream/${videoId}/thumbnail`;
+                            const formData = new FormData();
+                            formData.append('file', poster);
+
+                            const thumbRes = await fetch(thumbnailUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${CF_API_TOKEN}`
+                                    // NOTE: Do NOT set Content-Type here; the browser will set the correct multipart boundary.
+                                },
+                                body: formData
+                            });
+
+                            const thumbData = await thumbRes.json();
+                            console.log(thumbnailUrl );
+                            
+                            if (thumbData && thumbData.success) {
+                                statusDiv.innerHTML += '<br>Poster uploaded to Cloudflare.';
+                            } else {
+                                statusDiv.innerHTML += `<br>Poster upload failed: ${thumbData && thumbData.errors ? JSON.stringify(thumbData.errors) : 'Unknown error'}`;
+                            }
+                        } catch (e) {
+                            statusDiv.innerHTML += `<br>Poster upload error: ${e}`;
+                        }
+                    } else {
+                        statusDiv.innerHTML += '<br>No poster selected to upload.';
+                    }
 
                     // After getting the videoId, call backend to store file details
                     fetch('http://localhost:3500/api/v1/admin/admin-uploadContent', {
@@ -103,7 +183,13 @@
                         body: JSON.stringify({
                             title: title,
                             description: desc,
-                        uid: videoId
+                            uid: videoId,
+                            genre: genre,
+                            tags: tags,
+                            year: year,
+                            minutes: minutes,
+                            rating: rating,
+                            // poster: poster
                         })
                     })
                     .then(res => res.json())

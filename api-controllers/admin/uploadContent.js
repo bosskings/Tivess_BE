@@ -6,7 +6,17 @@ const adminUploadContent = async (req, res) => {
   
     try {
       // Extract details from the request body
-      const { uid, title, description } = req.body;
+      const { 
+        uid, 
+        title, 
+        description, 
+        category,
+        genre,
+        tags,
+        year,
+        minutes,
+        rating,
+        poster } = req.body;
 
       if (!uid || !title) {
         return res.status(400).json({
@@ -20,7 +30,13 @@ const adminUploadContent = async (req, res) => {
         uid: uid,
         status: "uploading",
         title: title,
-        description: description || ""
+        description: description || "",
+        genre: genre || "",
+        tags: tags || "",
+        releaseDate: year || "",
+        duration: minutes || "",
+        rating: rating || "",
+        poster: poster || ""
       });
 
       return res.json({

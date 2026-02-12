@@ -15,12 +15,12 @@ const movieSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+
     releaseDate: {
-        type: Date
+        type: String,
     },
     genre: {
-        type: [String],
-        default: []
+        type: String,
     },
     duration: {
         type: Number // duration in minutes
@@ -34,9 +34,10 @@ const movieSchema = new mongoose.Schema({
     movieFileUrl: {
         type: String
     },
-    isActive: {
-        type: Boolean,
-        default: true
+    status: {
+        type: String,
+        enum: ['inprogress', 'ready', 'error', 'inactive'],
+        default: 'inprogress'
     },
     createdAt: {
         type: Date,
