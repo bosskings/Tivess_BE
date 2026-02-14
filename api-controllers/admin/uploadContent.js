@@ -1,16 +1,17 @@
 import Movie from "../../models/Movie.js";
 import axios from "axios";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import fs from "fs"
 
 
-const adminUploadContent = async (req, res) => {
+const adminUploadVideo = async (req, res) => {
   
     try {
       // Extract details from the request body
       const { 
         uid, 
         title, 
-        description, 
-        category,
+        description,
         genre,
         tags,
         year,
@@ -28,7 +29,7 @@ const adminUploadContent = async (req, res) => {
       // Save file metadata in the database
       const movieDoc = await Movie.create({
         uid: uid,
-        status: "uploading",
+        status: "inprogress",
         title: title,
         description: description || "",
         genre: genre || "",
@@ -57,7 +58,78 @@ const adminUploadContent = async (req, res) => {
 
 
 
-// function to check if the video is uploaded to cloudflare'
+
+
+const adminUploadPoster = async (req, res) => {
+  try {
+    // R2 client
+    const r2 = new S3Client({
+      region: "auto",
+      endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY,
+        secretAccessKey: process.env.R2_SECRET_KEY
+      }
+    });
+
+    const file = req.file; // multer middleware should provide req.file
+    const { uid } = req.body; // uid expected from body
+
+    // Defensive: check that file.path is defined and not undefined/null/empty
+    if (!file || !file.path || !uid) {
+      return res.status(400).json({
+        status: "FAILED",
+        message: "Missing file, file path, or uid in request."
+      });
+    }
+
+    const fileStream = fs.createReadStream(file.path);
+    const ext = file.originalname.split('.').pop();
+    const uploadKey = `${Date.now()}.${ext}`;
+
+    try {
+      await r2.send(new PutObjectCommand({
+        Bucket: "posters", // Replace with your R2 bucket
+        Key: uploadKey,
+        Body: fileStream,
+        ContentType: file.mimetype,
+        ACL: 'public-read'
+      }));
+
+    } finally {
+      
+      // Always attempt to clean up the temp file
+      fs.unlinkSync(file.path);
+    
+    }
+
+    // Generate the public "web" URL to access the image
+    // For Cloudflare R2, format: https://<account_id>.r2.cloudflarestorage.com/<bucket>/<key>
+    const publicUrl = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/posters/${uploadKey}`;
+
+    return res.json({
+      status: "SUCCESS",
+      message: "Poster uploaded successfully.",
+      data: {
+        key: uploadKey,
+        url: publicUrl // Send the WEB URL of the uploaded file
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status: "FAILED",
+      message: "R2 upload failed."
+    });
+  }
+};
+
+
+
+
+
+
+
 const adminCheckUploadStatus = async (req, res) => {
   const { uid } = req.params;
 
@@ -105,4 +177,4 @@ const adminCheckUploadStatus = async (req, res) => {
   }
 };
 
-export  {adminUploadContent, adminCheckUploadStatus};
+export  {adminUploadVideo, adminUploadPoster, adminCheckUploadStatus};

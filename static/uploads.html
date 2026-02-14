@@ -141,44 +141,45 @@
                     const videoId = upload.url.split('/').pop();
                     statusDiv.innerHTML = `Success! Video ID: <strong>${videoId}</strong>`;
 
+
+                    // Generate a random uid (number as string)
+                    const uid = Math.floor(Math.random() * 1e12).toString();
+
+            
+
                     // upload thumbnail/poster to Cloudflare Stream using the video UID
-                    if (poster) {
-                        try {
-                            statusDiv.innerHTML += '<br>Uploading poster to Cloudflare...';
-                            const thumbnailUrl = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream/${videoId}/thumbnail`;
-                            const formData = new FormData();
-                            formData.append('file', poster);
-
-                            const thumbRes = await fetch(thumbnailUrl, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${CF_API_TOKEN}`
-                                    // NOTE: Do NOT set Content-Type here; the browser will set the correct multipart boundary.
-                                },
-                                body: formData
-                            });
-
-                            const thumbData = await thumbRes.json();
-                            console.log(thumbnailUrl );
-                            
-                            if (thumbData && thumbData.success) {
-                                statusDiv.innerHTML += '<br>Poster uploaded to Cloudflare.';
-                            } else {
-                                statusDiv.innerHTML += `<br>Poster upload failed: ${thumbData && thumbData.errors ? JSON.stringify(thumbData.errors) : 'Unknown error'}`;
-                            }
-                        } catch (e) {
-                            statusDiv.innerHTML += `<br>Poster upload error: ${e}`;
+                    // Prepare FormData for poster upload
+                    const posterFormData = new FormData();
+                    posterFormData.append('uid', uid);  // Make sure uid is appended first
+                    posterFormData.append('file', poster); // Changed "file" to "poster" to match common multer config
+                    
+                    try {
+                        const posterRes = await fetch('http://localhost:3500/api/v1/admin/admin-uploadPoster', {
+                            method: 'POST',
+                            // Do NOT set Content-Type when sending FormData
+                            headers: {
+                                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcwOTg3NzkxLCJleHAiOjE3NzEwNzQxOTF9.NehtEw-CZ0UvJp-5vKlywHQdnDycLXi2YH6GaPqYJWY'
+                            },
+                            body: posterFormData
+                        });
+                        const posterData = await posterRes.json();
+                        if (posterData.status === 'SUCCESS') {
+                            statusDiv.innerHTML += `<br>Poster uploaded: <strong>${posterData.data.url}</strong>`;
+                        } else {
+                            statusDiv.innerHTML += `<br>Poster upload failed: <strong>${posterData.message}</strong>`;
                         }
-                    } else {
-                        statusDiv.innerHTML += '<br>No poster selected to upload.';
+                    } catch (err) {
+                        statusDiv.innerHTML += `<br>Poster upload error: ${err}`;
                     }
 
+
+                    
                     // After getting the videoId, call backend to store file details
-                    fetch('http://localhost:3500/api/v1/admin/admin-uploadContent', {
+                    fetch('http://localhost:3500/api/v1/admin/admin-uploadvideo', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcwNjg5NDk3LCJleHAiOjE3NzA3NzU4OTd9.SunDAkdb1hY-D1e6O3j44BuDDjydGCEy3MA4a1ofQI0'
+                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcwOTg3NzkxLCJleHAiOjE3NzEwNzQxOTF9.NehtEw-CZ0UvJp-5vKlywHQdnDycLXi2YH6GaPqYJWY'
                         },
                         body: JSON.stringify({
                             title: title,
