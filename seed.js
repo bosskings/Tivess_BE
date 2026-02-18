@@ -2,6 +2,7 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import { faker } from "@faker-js/faker";
 import WatchParty from "./models/WatchParty.js";
+import PaymentPlan from "./models/PaymentPlan.js";
 
 const SEED_COUNT = 50;
 
@@ -33,6 +34,19 @@ async function seed() {
 
     await WatchParty.insertMany(watchParties);
     console.log(`Seeded ${SEED_COUNT} watch parties successfully.`);
+
+    // Seed 1 payment plan
+    await PaymentPlan.deleteMany({});
+    const paymentPlan = new PaymentPlan({
+      name: "Premium",
+      price: 29.99,
+      durationInDays: 30,
+      features: ["HD streaming", "No ads", "Access to all movies"],
+      status: "ACTIVE",
+      createdAt: new Date(),
+    });
+    await paymentPlan.save();
+    console.log("Seeded 1 payment plan successfully.");
   } catch (err) {
     console.error("Seed failed:", err);
     process.exit(1);

@@ -4,7 +4,7 @@ const paymentPlanSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        unique: true
+        default: 'REGULAR'
     },
     price: {
         type: Number,
@@ -14,14 +14,18 @@ const paymentPlanSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    features: [
-        {
-            type: String
-        }
-    ],
-    isActive: {
-        type: Boolean,
-        default: true
+    features: {
+        type: [String],
+        default: [
+            "HD streaming",
+            "No ads",
+            "Access to all movies"
+        ],
+    },
+    status: {
+        type: String,
+        enum: ['ACTIVE', 'INACTIVE'],
+        default: 'ACTIVE'
     },
     createdAt: {
         type: Date,
