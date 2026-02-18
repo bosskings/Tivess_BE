@@ -4,36 +4,34 @@ import { faker } from "@faker-js/faker";
 import WatchParty from "./models/WatchParty.js";
 import PaymentPlan from "./models/PaymentPlan.js";
 
-const SEED_COUNT = 50;
+const HOST_IDS = [
+  "6991039eda5fbc8cfc85c206",
+  "6991039eda5fbc8cfc85c207",
+  "6991039eda5fbc8cfc85c208",
+  "6991039eda5fbc8cfc85c209",
+  "6991039eda5fbc8cfc85c20a"
+];
 
 async function seed() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("Connected to database");
 
-    // Optional: clear existing watch parties so each run gives exactly 50
+    // Clear existing watch parties so each run gives exactly 5
     await WatchParty.deleteMany({});
     console.log("Cleared existing watch parties");
 
-    const watchParties = [];
-
-    for (let i = 0; i < SEED_COUNT; i++) {
-      watchParties.push({
-        title: `Watch Party #${i + 1}`,
-        description: faker.lorem.sentence(),
-        movieTitle: faker.lorem.words({ min: 2, max: 5 }),
-        host: faker.person.fullName(),
-        scheduledAt: faker.date.future(),
-        inviteCode: faker.string.alphanumeric(8),
-        isPrivate: faker.datatype.boolean(),
-        maxParticipants: faker.number.int({ min: 2, max: 50 }),
-        createdAt: new Date(),
-        attendees: []
-      });
-    }
+    const watchParties = HOST_IDS.map((hostId, idx) => ({
+      host: hostId,
+      movieTitle: faker.lorem.words({ min: 2, max: 5 }),
+      movieLink: faker.internet.url(),
+      participants: [],
+      status: "SCHEDULED",
+      createdAt: new Date(),
+    }));
 
     await WatchParty.insertMany(watchParties);
-    console.log(`Seeded ${SEED_COUNT} watch parties successfully.`);
+    console.log(`Seeded ${HOST_IDS.length} watch parties successfully.`);
 
     // Seed 1 payment plan
     await PaymentPlan.deleteMany({});

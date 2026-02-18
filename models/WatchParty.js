@@ -5,8 +5,9 @@ const WatchPartySchema = new mongoose.Schema(
     host: {
       type:String,
       // type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      // ref: "User",
       required: true,
+      default:"6991039eda5fbc8cfc85c205"
     },
     movieTitle: {
       type: String,
@@ -21,19 +22,14 @@ const WatchPartySchema = new mongoose.Schema(
       {
         type:String,
         // type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        // ref: "User",
+        default:'0'
       },
     ],
-    startedAt: {
-      type: Date,
-      default: Date.now
-    },
-    endedAt: {
-      type: Date,
-    },
+    
     status: {
       type: String,
-      enum: ["scheduled", "ongoing", "ended"],
+      enum: ["SCHEDULED", "ONGOING", "ENDED"],
       default: "scheduled",
     }
   },

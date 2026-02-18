@@ -11,6 +11,16 @@ const movieSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+
+    watchedBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
+    currentlyWatching: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
+
     description: {
         type: String,
         required: true

@@ -7,7 +7,7 @@ import WatchParty from "../../models/WatchParty.js";
 const getActiveWatchParties = async (req, res) => {
     try {
         // Get watch parties with "ongoing" status
-        const activeParties = await WatchParty.find({ status: "ongoing" })
+        const activeParties = await WatchParty.find()
             .populate("host", "username email")
             .populate("participants", "username email");
 
@@ -17,6 +17,7 @@ const getActiveWatchParties = async (req, res) => {
             movieTitle: party.movieTitle,
             movieLink: party.movieLink,
             host: party.host,
+            status:party.status,
             participants: party.participants,
             numberOfPeopleWatching: 1 + (party.participants ? party.participants.length : 0), // host + participants
             startedAt: party.startedAt

@@ -6,6 +6,7 @@ import {adminUploadVideo, adminUploadPoster, adminCheckUploadStatus} from "../ap
 import { getAllUsers,changeUserStatus } from "../api-controllers/admin/users.js";
 // import { getActiveWatchParties } from "../api-controllers/admin/watchParty.js";
 import {adminUpdatePaymentPlan, getPaymentPlans} from "../api-controllers/admin/updatePaymentPlan.js";
+import { getActiveWatchParties } from "../api-controllers/admin/watchParty.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -32,7 +33,8 @@ router.patch('/admin-updatePaymentPlan', adminUpdatePaymentPlan);
 router.get('/admin-getUsers', getAllUsers);
 router.patch('/admin-updateUsersStatus', changeUserStatus);
 
-// router.get('/admin-watchParty', )
+// watch party section.
+router.get('/admin-watchParty', getActiveWatchParties )
     
 
 export default router;
