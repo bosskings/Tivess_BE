@@ -129,52 +129,36 @@ const adminUploadPoster = async (req, res) => {
 
 
 
-
-const adminCheckUploadStatus = async (req, res) => {
-  const { uid } = req.params;
-
+/**
+ * Controller to get the top 20 most viewed movies.
+ * "Views" is determined by the length of the watchedBy array.
+ */
+const adminMostViewedMovies = async (req, res) => {
   try {
-    // Query Cloudflare Stream for the current video status
-    const cfRes = await axios.get(
-      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream/${uid}`,
+    // Find movies, sort by number of viewers (watchedBy array size), then limit to 20
+    const movies = await Movie.aggregate([
       {
-        headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`
+        $addFields: {
+          views: { $size: "$watchedBy" }
         }
-      }
-    );
+      },
+      { $sort: { views: -1, createdAt: -1 } },
+      { $limit: 20 }
+    ]);
 
-    const result = cfRes.data.result;
-    // result.status.state: "queued" | "inprogress" | "ready" | "error"
-    // See: https://developers.cloudflare.com/api/operations/stream-get-video
-    const state = result.status?.state;
-    const isReady = state === "ready";
-
-    // Optionally include additional info, e.g. playback
-    let playbackUrl = null;
-    if (isReady && result.playback) {
-      playbackUrl = result.playback.hls;
-    }
-
-    res.json({
+    res.status(200).json({
       status: "SUCCESS",
-      message: isReady
-        ? "Video is ready to be viewed."
-        : `Video is processing (${state})`,
-      data: {
-        ready: isReady,
-        state,
-        playbackUrl: playbackUrl || null
-      }
+      message: "Top 20 most viewed movies fetched successfully.",
+      data: movies
     });
   } catch (err) {
-    console.error(err.response?.data || err);
+    console.error(err);
     res.status(500).json({
       status: "FAILED",
-      message:
-        "Failed to check video status: " + (err.response?.data || err).toString()
+      message: "Failed to fetch most viewed movies."
     });
   }
 };
 
-export  {adminUploadVideo, adminUploadPoster, adminCheckUploadStatus};
+
+export  {adminUploadVideo, adminUploadPoster, adminMostViewedMovies};
