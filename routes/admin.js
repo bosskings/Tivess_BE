@@ -30,7 +30,7 @@ router.patch('/admin-updatePaymentPlan', adminUpdatePaymentPlan);
 
 // admin handle users
 router.get('/admin-getUsers', getAllUsers);
-router.patch('/admin-updateUsers', changeUserStatus);
+router.patch('/admin-updateUsersStatus', changeUserStatus);
 
 // router.get('/admin-watchParty', )
     

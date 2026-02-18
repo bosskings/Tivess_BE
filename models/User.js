@@ -16,12 +16,6 @@ const userSchema = new mongoose.Schema({
         unique: true
     },
 
-    // googleId: {
-    //     type: String,
-    //     unique: true,
-    //     sparse: true
-    // },
-    
     picture: {
         type: String,
         default:null
@@ -33,9 +27,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    isActive:{
-        type:Boolean,
-        default:true
+    status: {
+        type: String,
+        enum: ['ACTIVE', 'SUSPENDED'],
+        default: 'active'
     },
     createdAt: {
         type: Date,

@@ -25,7 +25,7 @@ const changeUserStatus = async (req, res) => {
             return res.status(400).json({ status: "FAILED", message: "userId and status are required." });
         }
 
-        if (!["suspended", "active"].includes(status)) {
+        if (!['ACTIVE', 'SUSPENDED'].includes(status)) {
             return res.status(400).json({ status: "FAILED", message: "Status must be 'suspended' or 'active'." });
         }
 

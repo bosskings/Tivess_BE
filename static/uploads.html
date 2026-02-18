@@ -154,11 +154,11 @@
                     posterFormData.append('file', poster); // Changed "file" to "poster" to match common multer config
                     
                     try {
-                        const posterRes = await fetch('http://localhost:3500/api/v1/admin/admin-uploadPoster', {
+                        const posterRes = await fetch('https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadPoster', {
                             method: 'POST',
                             // Do NOT set Content-Type when sending FormData
                             headers: {
-                                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcwOTg3NzkxLCJleHAiOjE3NzEwNzQxOTF9.NehtEw-CZ0UvJp-5vKlywHQdnDycLXi2YH6GaPqYJWY'
+                                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcxMzE0NjI1LCJleHAiOjE3NzE0MDEwMjV9.lfA7MmgsTKs0EKb6_yEEvUnXjj5vhMgKSp4YnMLeTgE'
                             },
                             body: posterFormData
                         });
@@ -175,11 +175,11 @@
 
                     
                     // After getting the videoId, call backend to store file details
-                    fetch('http://localhost:3500/api/v1/admin/admin-uploadvideo', {
+                    fetch('https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadvideo', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcwOTg3NzkxLCJleHAiOjE3NzEwNzQxOTF9.NehtEw-CZ0UvJp-5vKlywHQdnDycLXi2YH6GaPqYJWY'
+                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcxMzE0NjI1LCJleHAiOjE3NzE0MDEwMjV9.lfA7MmgsTKs0EKb6_yEEvUnXjj5vhMgKSp4YnMLeTgE'
                         },
                         body: JSON.stringify({
                             title: title,
@@ -190,6 +190,7 @@
                             year: year,
                             minutes: minutes,
                             rating: rating,
+                            status:'ready'
                             // poster: poster
                         })
                     })

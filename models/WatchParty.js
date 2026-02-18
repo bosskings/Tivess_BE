@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const WatchPartySchema = new mongoose.Schema(
   {
     host: {
-      type: mongoose.Schema.Types.ObjectId,
+      type:String,
+      // type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
@@ -14,10 +15,12 @@ const WatchPartySchema = new mongoose.Schema(
     movieLink: {
       type: String,
       required: true,
+      default:"https://www.youtube.com/watch?v=Juj0fBbcdd4"
     },
     participants: [
       {
-        type: mongoose.Schema.Types.ObjectId,
+        type:String,
+        // type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
