@@ -20,7 +20,7 @@ router.use(adminAuthMiddleware);
 router.get('/admin-home', adminPreview);
 router.get('/admin-getTopContent', adminMostViewedMovies);
 router.post('/admin-uploadVideo', adminUploadVideo);
-router.post('/admin-recentActivities', adminRecentActivities);
+router.get('/admin-recentActivities', adminRecentActivities);
 
 const upload = multer({ dest: "uploads/" }); // Store files on disk so file.path is available to the controller
 router.post('/admin-uploadPoster', upload.single('file'), adminUploadPoster);

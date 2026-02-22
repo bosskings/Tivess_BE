@@ -6,25 +6,49 @@ import Movies from "../../models/Movie.js"; // Make sure the path and export are
 
 const adminPreview = async (req, res) => {
     try {
-        // Get total number of users
+        // Calculate previous week and current week
+        const now = new Date();
+        const startOfThisWeek = new Date(now);
+        startOfThisWeek.setDate(now.getDate() - now.getDay()); // Sunday
+        startOfThisWeek.setHours(0, 0, 0, 0);
+
+        const startOfLastWeek = new Date(startOfThisWeek);
+        startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+
+        const endOfLastWeek = new Date(startOfThisWeek);
+
+        // USERS
         const totalUsers = await User.countDocuments();
-        // Get all users (limited to a preview, e.g. 5 latest users)
         const latestUsers = await User.find().sort({ createdAt: -1 }).limit(5);
+        const usersThisWeek = await User.countDocuments({ createdAt: { $gte: startOfThisWeek } });
+        const usersLastWeek = await User.countDocuments({ createdAt: { $gte: startOfLastWeek, $lt: endOfLastWeek } });
+        const usersChange = usersLastWeek === 0
+            ? (usersThisWeek > 0 ? 100 : 0)
+            : ((usersThisWeek - usersLastWeek) / usersLastWeek) * 100;
 
-        // Get total number of movies/content
+        // MOVIES
         const totalMovies = await Movies.countDocuments();
-        // Get latest uploaded movies preview
         const latestMovies = await Movies.find().sort({ createdAt: -1 }).limit(5);
+        const moviesThisWeek = await Movies.countDocuments({ createdAt: { $gte: startOfThisWeek } });
+        const moviesLastWeek = await Movies.countDocuments({ createdAt: { $gte: startOfLastWeek, $lt: endOfLastWeek } });
+        const moviesChange = moviesLastWeek === 0
+            ? (moviesThisWeek > 0 ? 100 : 0)
+            : ((moviesThisWeek - moviesLastWeek) / moviesLastWeek) * 100;
 
-        // Get total and ongoing watch parties
+        // WATCH PARTIES
         const totalWatchParties = await WatchParty.countDocuments();
+        const watchPartiesThisWeek = await WatchParty.countDocuments({ createdAt: { $gte: startOfThisWeek } });
+        const watchPartiesLastWeek = await WatchParty.countDocuments({ createdAt: { $gte: startOfLastWeek, $lt: endOfLastWeek } });
+        const watchPartiesChange = watchPartiesLastWeek === 0
+            ? (watchPartiesThisWeek > 0 ? 100 : 0)
+            : ((watchPartiesThisWeek - watchPartiesLastWeek) / watchPartiesLastWeek) * 100;
+
         const ongoingWatchParties = await WatchParty.find({ status: "ongoing" })
             .populate("host", "username email")
             .populate("participants", "username email")
             .sort({ startedAt: -1 })
             .limit(5);
 
-        // Format ongoing watch parties for preview
         const watchPartyPreview = ongoingWatchParties.map(party => ({
             partyId: party._id,
             movieTitle: party.movieTitle,
@@ -34,24 +58,24 @@ const adminPreview = async (req, res) => {
             startedAt: party.startedAt
         }));
 
-        // You can add more summary data from other models here
-
         res.status(200).json({
             status: "SUCCESS",
             preview: {
                 users: {
                     total: totalUsers,
-                    latest: latestUsers
+                    latest: latestUsers,
+                    change: Number(usersChange.toFixed(2)) // percentage, positive or negative
                 },
                 movies: {
                     total: totalMovies,
-                    latest: latestMovies
+                    latest: latestMovies,
+                    change: Number(moviesChange.toFixed(2))
                 },
                 watchParties: {
                     total: totalWatchParties,
-                    ongoing: watchPartyPreview
+                    ongoing: watchPartyPreview,
+                    change: Number(watchPartiesChange.toFixed(2))
                 }
-                // Add more preview objects from other models here as needed
             }
         });
     } catch (error) {
