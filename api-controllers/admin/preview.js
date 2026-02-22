@@ -1,5 +1,6 @@
 import User from "../../models/User.js";
 import WatchParty from "../../models/WatchParty.js";
+import Activity from "../../models/Activity.js";
 import Movies from "../../models/Movie.js"; // Make sure the path and export are correct
 // Add any other models here as needed
 
@@ -58,4 +59,31 @@ const adminPreview = async (req, res) => {
     }
 };
 
-export default adminPreview;
+
+
+// Get admins recent activities (latest 20)
+const adminRecentActivities = async (req, res) => {
+    try {
+        // Get the most recent 20 admin activities
+        const recentActivities = await Activity.find()
+            .sort({ createdAt: -1 })
+            .limit(20);
+
+        res.status(200).json({
+            status: "SUCCESS",
+            activities: recentActivities
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: "FAILED",
+            message: "Server error fetching recent admin activities.",
+            error: error.message
+        });
+    }
+};
+
+
+export {
+    adminRecentActivities,
+    adminPreview
+}

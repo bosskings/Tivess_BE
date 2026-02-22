@@ -4,6 +4,7 @@ import { faker } from "@faker-js/faker";
 import WatchParty from "./models/WatchParty.js";
 import PaymentPlan from "./models/PaymentPlan.js";
 import Movie from "./models/Movie.js";
+import Activity from "./models/Activity.js";
 
 const HOST_IDS = [
   "6991039eda5fbc8cfc85c206",
@@ -52,6 +53,18 @@ async function seed() {
     };
     const result = await Movie.updateMany({}, update);
     console.log(`Updated ${result.modifiedCount !== undefined ? result.modifiedCount : result.nModified} movies with watchedBy and currentlyWatching user IDs.`);
+
+    // Seed 20 activities
+    await Activity.deleteMany({});
+    const activityTypes = ["WATCH_PARTY_CREATED", "MOVIE_WATCHED", "COMMENT_ADDED", "FRIEND_JOINED", "PAYMENT_COMPLETED"];
+    const activities = Array.from({ length: 20 }, () => ({
+      activityType: faker.helpers.arrayElement(activityTypes),
+      status: faker.helpers.arrayElement(["SEEN", "UNSEEN"]),
+      comment: faker.datatype.boolean(0.6) ? faker.lorem.sentence() : null,
+      createdAt: faker.date.recent({ days: 30 }),
+    }));
+    await Activity.insertMany(activities);
+    console.log("Seeded 20 activities successfully.");
 
     // Seed 1 payment plan if needed (uncomment/modify as desired)
     // await PaymentPlan.deleteMany({});
