@@ -29,7 +29,7 @@ const adminUploadVideo = async (req, res) => {
       // Save file metadata in the database
       const movieDoc = await Movie.create({
         uid: uid,
-        status: "inprogress",
+        status: "ready",
         title: title,
         description: description || "",
         genre: genre || "",
@@ -85,7 +85,7 @@ const adminUploadPoster = async (req, res) => {
 
     const fileStream = fs.createReadStream(file.path);
     const ext = file.originalname.split('.').pop();
-    const uploadKey = `${Date.now()}.${ext}`;
+    const uploadKey = `${uid}.${ext}`;
 
     try {
       await r2.send(new PutObjectCommand({
@@ -104,17 +104,25 @@ const adminUploadPoster = async (req, res) => {
     }
 
     // Generate the public "web" URL to access the image
-    // For Cloudflare R2, format: https://<account_id>.r2.cloudflarestorage.com/<bucket>/<key>
-    const publicUrl = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/posters/${uploadKey}`;
+    const posterUrl = `https://assets.tivees.com//${uploadKey}`;
 
+    // Find the movie with the given uid and update its poster field
+    await Movie.findOneAndUpdate(
+      { uid: uid },
+      { poster: posterUrl }
+    );
+
+    // Only send the response when the Movie update is done
     return res.json({
       status: "SUCCESS",
       message: "Poster uploaded successfully.",
       data: {
         key: uploadKey,
-        url: publicUrl // Send the WEB URL of the uploaded file
+        url: posterUrl // Send the WEB URL of the uploaded file
       }
     });
+
+
   } catch (err) {
     console.error(err);
     return res.status(500).json({
@@ -122,6 +130,7 @@ const adminUploadPoster = async (req, res) => {
       message: "R2 upload failed."
     });
   }
+
 };
 
 

@@ -22,18 +22,17 @@ const adminPreview = async (req, res) => {
         const latestUsers = await User.find().sort({ createdAt: -1 }).limit(5);
         const usersThisWeek = await User.countDocuments({ createdAt: { $gte: startOfThisWeek } });
         const usersLastWeek = await User.countDocuments({ createdAt: { $gte: startOfLastWeek, $lt: endOfLastWeek } });
+        // Calculate the percentage change in users compared to the previous week
         const usersChange = usersLastWeek === 0
             ? (usersThisWeek > 0 ? 100 : 0)
-            : ((usersThisWeek - usersLastWeek) / usersLastWeek) * 100;
-
-        // MOVIES
+            : (((usersThisWeek - usersLastWeek) / usersLastWeek) * 100);
         const totalMovies = await Movies.countDocuments();
         const latestMovies = await Movies.find().sort({ createdAt: -1 }).limit(5);
         const moviesThisWeek = await Movies.countDocuments({ createdAt: { $gte: startOfThisWeek } });
         const moviesLastWeek = await Movies.countDocuments({ createdAt: { $gte: startOfLastWeek, $lt: endOfLastWeek } });
         const moviesChange = moviesLastWeek === 0
             ? (moviesThisWeek > 0 ? 100 : 0)
-            : ((moviesThisWeek - moviesLastWeek) / moviesLastWeek) * 100;
+            : (((moviesThisWeek - moviesLastWeek) / (moviesLastWeek === 0 ? 1 : moviesLastWeek)) * 100);s
 
         // WATCH PARTIES
         const totalWatchParties = await WatchParty.countDocuments();
@@ -41,7 +40,7 @@ const adminPreview = async (req, res) => {
         const watchPartiesLastWeek = await WatchParty.countDocuments({ createdAt: { $gte: startOfLastWeek, $lt: endOfLastWeek } });
         const watchPartiesChange = watchPartiesLastWeek === 0
             ? (watchPartiesThisWeek > 0 ? 100 : 0)
-            : ((watchPartiesThisWeek - watchPartiesLastWeek) / watchPartiesLastWeek) * 100;
+            : (((watchPartiesThisWeek - watchPartiesLastWeek) / (watchPartiesLastWeek === 0 ? 1 : watchPartiesLastWeek)) * 100);
 
         const ongoingWatchParties = await WatchParty.find({ status: "ongoing" })
             .populate("host", "username email")

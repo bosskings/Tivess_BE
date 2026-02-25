@@ -140,25 +140,71 @@
                 onSuccess: async () => {
                     const videoId = upload.url.split('/').pop();
                     statusDiv.innerHTML = `Success! Video ID: <strong>${videoId}</strong>`;
+                    console.log(upload.url, upload)
 
 
                     // Generate a random uid (number as string)
                     const uid = Math.floor(Math.random() * 1e12).toString();
 
             
-
-                    // upload thumbnail/poster to Cloudflare Stream using the video UID
-                    // Prepare FormData for poster upload
+                    /***
+                     * *
+                     * 
+                        * After getting the videoId, call backend to store file details
+                    */
+                    
+                    // fetch('https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadvideo', {
+                    fetch('http://localhost:3500/api/v1/admin/admin-uploadvideo', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcxOTc1OTYxLCJleHAiOjE3NzIwNjIzNjF9.2TNA1RTTamA32S5Miz2ABVfLL9DMwfiF-3HSiI9zp1E'
+                        },
+                        body: JSON.stringify({
+                            title: title,
+                            description: desc,
+                            uid: videoId,
+                            genre: genre,
+                            tags: tags,
+                            year: year,
+                            minutes: minutes,
+                            rating: rating,
+                            status:'ready',
+                            poster: `https://assets.tivees.com/${videoId}.png`
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'SUCCESS') {
+                            statusDiv.innerHTML += `<br>Backend record stored: <strong>${data.message}</strong>`;
+                        } else {
+                            statusDiv.innerHTML += `<br>Backend error: <strong>${data.message}</strong>`;
+                        }
+                    })
+                    .catch(err => {
+                        statusDiv.innerHTML += `<br>Could not contact backend: ${err}`;
+                    });
+                    
+                    
+                    
+                    /*** 
+                    
+                        * upload thumbnail/poster to Cloudflare Stream using the video UID
+                        * Prepare FormData for poster upload
+                        * 
+                    ****/
+        
                     const posterFormData = new FormData();
-                    posterFormData.append('uid', uid);  // Make sure uid is appended first
+                    posterFormData.append('uid', videoId);  // Make sure uid is appended first
                     posterFormData.append('file', poster); // Changed "file" to "poster" to match common multer config
                     
                     try {
-                        const posterRes = await fetch('https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadPoster', {
+                        // const posterRes = await fetch('https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadPoster', {
+                        const posterRes = await fetch('http://localhost:3500/api/v1/admin/admin-uploadPoster', {
                             method: 'POST',
                             // Do NOT set Content-Type when sending FormData
                             headers: {
-                                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcxMzE0NjI1LCJleHAiOjE3NzE0MDEwMjV9.lfA7MmgsTKs0EKb6_yEEvUnXjj5vhMgKSp4YnMLeTgE'
+                                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcxOTc1OTYxLCJleHAiOjE3NzIwNjIzNjF9.2TNA1RTTamA32S5Miz2ABVfLL9DMwfiF-3HSiI9zp1E'
                             },
                             body: posterFormData
                         });
@@ -173,38 +219,6 @@
                     }
 
 
-                    
-                    // After getting the videoId, call backend to store file details
-                    fetch('https://tivess-be-89v3.onrender.com/api/v1/admin/admin-uploadvideo', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbkFkbWluIjp7ImxvZ2luSWQiOiJhZG1pbjAwMUB0aXZlc3MubWVkaWEifSwidHlwZSI6IkFETUlOIiwiaWF0IjoxNzcxMzE0NjI1LCJleHAiOjE3NzE0MDEwMjV9.lfA7MmgsTKs0EKb6_yEEvUnXjj5vhMgKSp4YnMLeTgE'
-                        },
-                        body: JSON.stringify({
-                            title: title,
-                            description: desc,
-                            uid: videoId,
-                            genre: genre,
-                            tags: tags,
-                            year: year,
-                            minutes: minutes,
-                            rating: rating,
-                            status:'ready'
-                            // poster: poster
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status === 'SUCCESS') {
-                            statusDiv.innerHTML += `<br>Backend record stored: <strong>${data.message}</strong>`;
-                        } else {
-                            statusDiv.innerHTML += `<br>Backend error: <strong>${data.message}</strong>`;
-                        }
-                    })
-                    .catch(err => {
-                        statusDiv.innerHTML += `<br>Could not contact backend: ${err}`;
-                    });
                 }
             });
 

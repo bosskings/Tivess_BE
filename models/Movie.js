@@ -36,7 +36,8 @@ const movieSchema = new mongoose.Schema({
         type: Number // duration in minutes
     },
     posterUrl: {
-        type: String
+        type: String,
+        default:"https://assets.tivees.com/1771283848814.png"
     },
     trailerUrl: {
         type: String
