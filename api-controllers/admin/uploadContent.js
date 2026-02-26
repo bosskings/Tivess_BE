@@ -1,5 +1,5 @@
 import Movie from "../../models/Movie.js";
-import axios from "axios";
+import sharp from "sharp";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import fs from "fs"
 
@@ -31,13 +31,13 @@ const adminUploadVideo = async (req, res) => {
         uid: uid,
         status: "ready",
         title: title,
-        description: description || "",
-        genre: genre || "",
-        tags: tags || "",
-        releaseDate: year || "",
-        duration: minutes || "",
-        rating: rating || "",
-        poster: poster || ""
+        description: description,
+        genre: genre,
+        tags: tags,
+        releaseDate: year,
+        duration: minutes,
+        rating: rating,
+        poster: poster
       });
 
       return res.json({
@@ -55,8 +55,6 @@ const adminUploadVideo = async (req, res) => {
       });
     }
 };
-
-
 
 
 
@@ -83,36 +81,39 @@ const adminUploadPoster = async (req, res) => {
       });
     }
 
-    const fileStream = fs.createReadStream(file.path);
-    const ext = file.originalname.split('.').pop();
-    const uploadKey = `${uid}.${ext}`;
+    // Convert the image to webp buffer using sharp
+    let webpBuffer;
+    try {
+      webpBuffer = await sharp(file.path)
+        .webp({ quality: 90 })
+        .toBuffer();
+    } catch (sharpErr) {
+      console.error("Sharp conversion error:", sharpErr);
+      return res.status(500).json({
+        status: "FAILED",
+        message: "Failed to convert image to webp."
+      });
+    }
 
+    const uploadKey = `${uid}.webp`;
+
+    console.log('Uploading poster as', uploadKey);
     try {
       await r2.send(new PutObjectCommand({
         Bucket: "posters", // Replace with your R2 bucket
         Key: uploadKey,
-        Body: fileStream,
-        ContentType: file.mimetype,
+        Body: webpBuffer,
+        ContentType: 'image/webp',
         ACL: 'public-read'
       }));
-
     } finally {
-      
       // Always attempt to clean up the temp file
       fs.unlinkSync(file.path);
-    
     }
 
-    // Generate the public "web" URL to access the image
-    const posterUrl = `https://assets.tivees.com//${uploadKey}`;
+    // Construct posterUrl (assuming a fixed public URL pattern)
+    const posterUrl = `https://assets.tivees.com/${uploadKey}`;
 
-    // Find the movie with the given uid and update its poster field
-    await Movie.findOneAndUpdate(
-      { uid: uid },
-      { poster: posterUrl }
-    );
-
-    // Only send the response when the Movie update is done
     return res.json({
       status: "SUCCESS",
       message: "Poster uploaded successfully.",
@@ -132,6 +133,7 @@ const adminUploadPoster = async (req, res) => {
   }
 
 };
+
 
 
 
