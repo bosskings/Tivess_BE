@@ -32,7 +32,7 @@ const adminPreview = async (req, res) => {
         const moviesLastWeek = await Movies.countDocuments({ createdAt: { $gte: startOfLastWeek, $lt: endOfLastWeek } });
         const moviesChange = moviesLastWeek === 0
             ? (moviesThisWeek > 0 ? 100 : 0)
-            : (((moviesThisWeek - moviesLastWeek) / (moviesLastWeek === 0 ? 1 : moviesLastWeek)) * 100);s
+            : (((moviesThisWeek - moviesLastWeek) / (moviesLastWeek === 0 ? 1 : moviesLastWeek)) * 100);
 
         // WATCH PARTIES
         const totalWatchParties = await WatchParty.countDocuments();
@@ -78,7 +78,13 @@ const adminPreview = async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ status: "FAILED", message: "Server error.", error: error.message });
+
+        console.log(error);
+        
+        res.status(500).json({ 
+            status: "FAILED", 
+            message: "Server error."+error.message });
+
     }
 };
 
