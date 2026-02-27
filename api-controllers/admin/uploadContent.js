@@ -179,42 +179,76 @@ const adminMostViewedMovies = async (req, res) => {
  *   PATCH /api/v1/admin/editContent/:id
  *   Body: { field1: value, field2: value, ... }
  */
-// import Movie from "../../models/Movie.js"; // If not already imported at the top
 
-// const editContent = async (req, res) => {
-//   const { id } = req.params; // Movie _id in URL path
-//   const updateFields = req.body; // JSON body with fields to update
+const editContent = async (req, res) => {
+  const { id } = req.params; // Movie _id in URL path
+  const updateFields = req.body; // JSON body with fields to update
 
-//   try {
-//     const updatedMovie = await Movie.findByIdAndUpdate(
-//       id,
-//       { $set: updateFields },
-//       {
-//         new: true, // return the updated document
-//         runValidators: true, // validate before updating
-//       }
-//     );
+  try {
+    const updatedMovie = await Movie.findByIdAndUpdate(
+      id,
+      { $set: updateFields },
+      {
+        new: true, // return the updated document
+        runValidators: true, // validate before updating
+      }
+    );
 
-//     if (!updatedMovie) {
-//       return res.status(404).json({
-//         status: "FAILED",
-//         message: "Movie not found.",
-//       });
-//     }
+    if (!updatedMovie) {
+      return res.status(404).json({
+        status: "FAILED",
+        message: "Movie not found.",
+      });
+    }
 
-//     return res.status(200).json({
-//       status: "SUCCESS",
-//       message: "Movie updated successfully.",
-//       data: updatedMovie,
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     return res.status(500).json({
-//       status: "FAILED",
-//       message: "Failed to update movie.",
-//       error: err.message,
-//     });
-//   }
-// };
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Movie updated successfully.",
+      data: updatedMovie,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status: "FAILED",
+      message: "Failed to update movie.",
+      error: err.message,
+    });
+  }
+};
 
-export  {adminUploadVideo, adminUploadPoster, adminMostViewedMovies};
+
+/**
+ * Controller to delete a video (Movie document) by its _id.
+ * Call with:
+ *   DELETE /api/v1/admin/deleteVideo/:id
+ */
+const deleteVideo = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedMovie = await Movie.findByIdAndDelete(id);
+
+    if (!deletedMovie) {
+      return res.status(404).json({
+        status: "FAILED",
+        message: "Movie not found.",
+      });
+    }
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Movie deleted successfully.",
+      data: deletedMovie,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status: "FAILED",
+      message: "Failed to delete movie.",
+      error: err.message,
+    });
+  }
+};
+
+
+export  {adminUploadVideo, adminUploadPoster, adminMostViewedMovies, editContent, deleteVideo};

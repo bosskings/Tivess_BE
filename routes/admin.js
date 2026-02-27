@@ -2,8 +2,14 @@ import express from "express";
 import adminAuthMiddleware from "../middleware/adminAuthMiddleware.js";
 import { adminPreview, adminRecentActivities } from "../api-controllers/admin/preview.js";
 import adminAuthController from "../api-controllers/admin/auth.js";
-import {adminUploadVideo, adminUploadPoster, adminMostViewedMovies} from "../api-controllers/admin/uploadContent.js";
-import { getAllUsers,changeUserStatus } from "../api-controllers/admin/users.js";
+
+import {adminUploadVideo, 
+    adminUploadPoster, 
+    adminMostViewedMovies, 
+    editContent, 
+    deleteVideo} from "../api-controllers/admin/uploadContent.js";
+
+    import { getAllUsers,changeUserStatus } from "../api-controllers/admin/users.js";
 // import { getActiveWatchParties } from "../api-controllers/admin/watchParty.js";
 import {adminUpdatePaymentPlan, getPaymentPlans} from "../api-controllers/admin/updatePaymentPlan.js";
 import { getActiveWatchParties } from "../api-controllers/admin/watchParty.js";
@@ -24,6 +30,9 @@ router.get('/admin-recentActivities', adminRecentActivities);
 
 const upload = multer({ dest: "uploads/" }); // Store files on disk so file.path is available to the controller
 router.post('/admin-uploadPoster', upload.single('file'), adminUploadPoster);
+router.patch('/admin-editVideo/:id', editContent);
+router.patch('/admin-deleteVideo/:id', deleteVideo);
+
 
 
 router.get('/admin-getPaymentPlan', getPaymentPlans);
