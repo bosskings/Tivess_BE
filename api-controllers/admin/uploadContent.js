@@ -37,7 +37,7 @@ const adminUploadVideo = async (req, res) => {
         releaseDate: year,
         duration: minutes,
         rating: rating,
-        poster: poster
+        posterUrl: poster
       });
 
       return res.json({
@@ -171,5 +171,50 @@ const adminMostViewedMovies = async (req, res) => {
   }
 };
 
+
+/**
+ * Controller to edit/update content (Movie document) by _id.
+ * Accepts any updatable field from the Movies model and applies to the document.
+ * Call with:
+ *   PATCH /api/v1/admin/editContent/:id
+ *   Body: { field1: value, field2: value, ... }
+ */
+// import Movie from "../../models/Movie.js"; // If not already imported at the top
+
+// const editContent = async (req, res) => {
+//   const { id } = req.params; // Movie _id in URL path
+//   const updateFields = req.body; // JSON body with fields to update
+
+//   try {
+//     const updatedMovie = await Movie.findByIdAndUpdate(
+//       id,
+//       { $set: updateFields },
+//       {
+//         new: true, // return the updated document
+//         runValidators: true, // validate before updating
+//       }
+//     );
+
+//     if (!updatedMovie) {
+//       return res.status(404).json({
+//         status: "FAILED",
+//         message: "Movie not found.",
+//       });
+//     }
+
+//     return res.status(200).json({
+//       status: "SUCCESS",
+//       message: "Movie updated successfully.",
+//       data: updatedMovie,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({
+//       status: "FAILED",
+//       message: "Failed to update movie.",
+//       error: err.message,
+//     });
+//   }
+// };
 
 export  {adminUploadVideo, adminUploadPoster, adminMostViewedMovies};
